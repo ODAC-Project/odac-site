@@ -22,7 +22,7 @@ WORKDIR /var/www/odac
 COPY --from=vendor /build ./
 COPY --from=assets /build/public/build ./public/build
 RUN rm -rf tests node_modules \
- && mkdir -p storage/app/odac/artifacts storage/framework/cache storage/framework/views storage/logs database \
+ && mkdir -p storage/app/odac/artifacts storage/framework/cache storage/framework/views storage/logs database/data \
  && chown -R www-data:www-data storage database bootstrap/cache
 USER www-data
 # Artifacts and the SQLite base live in volumes: never lost on a redeploy.

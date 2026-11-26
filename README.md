@@ -174,18 +174,24 @@ crontab de l'hôte :
 Une ingestion lit `latest.json`, soit quelques centaines d'octets. Elle ne
 télécharge l'artefact que si l'empreinte a changé.
 
-### 4. nginx de l'hôte (TLS)
+### 4. nginx frontal (TLS)
 
-`docker/nginx.conf` est la configuration du nginx **dans** le conteneur. Il fait
-confiance à `X-Forwarded-For` uniquement depuis la passerelle `172.30.57.1`, le
-sous-réseau fixé dans `compose.yaml`. PHP voit donc le client dans `REMOTE_ADDR`,
-et `ODAC_TRUSTED_PROXIES` reste vide. Sur l'hôte :
+Le compose **ne publie que `127.0.0.1:8080`**. Il ne lance ni nginx sur 80/443 ni
+certbot : le TLS revient au nginx frontal du serveur. `docker/nginx.conf` est la
+configuration du nginx **interne** au compose. Celui-ci ne fait confiance à
+`X-Forwarded-For` que depuis la passerelle `172.30.57.1`, le sous-réseau fixé dans
+`compose.yaml`, par lequel arrive une connexion vers le port publié. PHP voit donc
+le client dans `REMOTE_ADDR`, et `ODAC_TRUSTED_PROXIES` reste vide.
+
+Bloc à ajouter au nginx frontal :
 
 ```nginx
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
     server_name odac.tune.audio;
-    # ssl_certificate … (certbot)
+    # ssl_certificate / ssl_certificate_key : ceux du frontal (Let's Encrypt)
 
     location / {
         proxy_pass http://127.0.0.1:8080;
@@ -193,10 +199,15 @@ server {
         proxy_set_header X-Forwarded-For $remote_addr;   # écrase, ne concatène pas
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_http_version 1.1;
-        gzip off;   # la compression est faite derrière ; ne pas recompresser
+        gzip off;   # l'artefact est déjà compressé derrière
     }
 }
-server { listen 80; server_name odac.tune.audio; return 301 https://$host$request_uri; }
+server {
+    listen 80;
+    listen [::]:80;
+    server_name odac.tune.audio;
+    return 301 https://$host$request_uri;
+}
 ```
 
 ### 5. Vérifier après chaque déploiement
