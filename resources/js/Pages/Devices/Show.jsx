@@ -54,9 +54,20 @@ export default function Show({ sheet, snapshot }) {
                 </p>
             )}
 
+            {identity.usb_ids.length > 0 && (
+                <p className="mt-1 text-sm text-stone-600">
+                    Identité USB :{' '}
+                    {identity.usb_ids.map((u, i) => (
+                        <code key={i} className="mr-2">{u.vid}:{u.pid}</code>
+                    ))}
+                </p>
+            )}
+
             {doubt && (
                 <section className="mt-4 rounded border border-amber-300 bg-amber-50 p-3">
-                    <h2 className="font-semibold">Une question ouverte</h2>
+                    <h2 className="font-semibold">
+                        Une question ouverte{doubt.raised_on && <span className="font-normal text-stone-600">, posée le {doubt.raised_on}</span>}
+                    </h2>
                     <p>{doubt.text}</p>
                     {app?.contribute_url && (
                         <a className="mt-1 inline-block text-sm underline" href={app.contribute_url}>Vous avez la réponse ? Contribuer</a>
@@ -88,6 +99,7 @@ export default function Show({ sheet, snapshot }) {
                                                         <Value field={row.field} value={c.value} />
                                                         {c.chosen && <span className="ml-1 text-xs text-stone-600">(retenue par la construction)</span>}
                                                         {c.weight != null && <span className="ml-1 text-xs text-stone-500">poids {c.weight}</span>}
+                                                        {c.claims > 1 && <span className="ml-1 text-xs text-stone-500">({c.claims} revendications)</span>}
                                                         <Source source={c.source} />
                                                     </li>
                                                 ))}

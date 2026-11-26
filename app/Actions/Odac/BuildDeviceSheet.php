@@ -20,41 +20,51 @@ use App\Models\OdacDevice;
  */
 final class BuildDeviceSheet
 {
+    /**
+     * Keys of a device record that are not facts. Keys starting with `_` are
+     * the curators' commentary and are never shown as facts either.
+     */
+    public const NOT_FACTS = ['id', 'brand', 'model', 'kind', 'aliases', 'usb', 'inputs', 'evidence', 'contested', 'open_doubt', 'superseded_by', 'level'];
+
     public function __invoke(OdacDevice $device): array
     {
         $data = $device->data;
         $fields = $this->fields($data);
-        $evidence = $this->normalizeKeys((array) ($data['evidence'] ?? []));
-        $contested = $this->normalizeKeys((array) ($data['contested'] ?? []));
+        $evidence = (array) ($data['evidence'] ?? []);
+        $contested = (array) ($data['contested'] ?? []);
 
+        // One block per piece of evidence (a claim file), numbered in claim
+        // order (001-, 002-...) so the numbering is stable across builds.
         $proofs = [];
-        $proofIndex = [];
         foreach ($evidence as $field => $proof) {
             if (! is_array($proof)) {
                 continue;
             }
             $key = $this->proofKey($proof);
-            if (! isset($proofIndex[$key])) {
-                $proofIndex[$key] = count($proofs);
-                $proofs[] = [
-                    'number' => count($proofs) + 1,
-                    'claim' => is_string($proof['claim'] ?? null) ? $proof['claim'] : null,
-                    'source' => $this->source($proof),
-                    'weight' => $proof['weight'] ?? null,
-                    'submitted_by' => is_string($proof['submitted_by'] ?? null) ? $proof['submitted_by'] : 'anonymous',
-                    'submitted_on' => $proof['submitted_on'] ?? null,
-                    'fields' => [],
-                ];
-            }
+            $proofs[$key] ??= [
+                'number' => 0,
+                'claim' => is_string($proof['claim'] ?? null) ? $proof['claim'] : null,
+                'source' => $this->source($proof),
+                'weight' => $proof['weight'] ?? null,
+                'submitted_by' => is_string($proof['submitted_by'] ?? null) ? $proof['submitted_by'] : 'anonymous',
+                'submitted_on' => $proof['submitted_on'] ?? null,
+                'fields' => [],
+            ];
             if (array_key_exists($field, $fields)) {
-                $proofs[$proofIndex[$key]]['fields'][] = ['field' => $field, 'value' => $fields[$field]];
+                $proofs[$key]['fields'][] = ['field' => $field, 'value' => $fields[$field]];
             }
         }
+        uksort($proofs, fn ($a, $b) => strcmp((string) $proofs[$a]['claim'], (string) $proofs[$b]['claim']) ?: strcmp($a, $b));
+        $number = 0;
+        foreach ($proofs as &$block) {
+            $block['number'] = ++$number;
+        }
+        unset($block);
 
         $summary = [];
         foreach ($fields as $field => $value) {
             $proof = isset($evidence[$field]) && is_array($evidence[$field])
-                ? $proofs[$proofIndex[$this->proofKey($evidence[$field])]]['number']
+                ? $proofs[$this->proofKey($evidence[$field])]['number']
                 : null;
             $summary[] = [
                 'field' => $field,
@@ -79,8 +89,9 @@ final class BuildDeviceSheet
                 'kind' => $device->kind,
                 'level' => $device->level,
                 'aliases' => ProjectSnapshot::aliases($data),
+                'usb_ids' => array_values(array_filter((array) ($data['usb'] ?? []), 'is_array')),
             ],
-            'proofs' => $proofs,
+            'proofs' => array_values($proofs),
             'summary' => $summary,
             'open_doubt' => $this->openDoubt($data['open_doubt'] ?? null),
         ];
@@ -94,8 +105,13 @@ final class BuildDeviceSheet
     private function fields(array $data): array
     {
         $fields = [];
-        foreach ((array) ($data['facts'] ?? []) as $field => $value) {
-            $fields[(string) $field] = $value;
+        // Facts are the record's top-level keys (the build resolves each
+        // field to its winning claim and writes it flat).
+        foreach ($data as $field => $value) {
+            $field = (string) $field;
+            if (! str_starts_with($field, '_') && ! in_array($field, self::NOT_FACTS, true)) {
+                $fields[$field] = $value;
+            }
         }
         foreach ((array) ($data['inputs'] ?? []) as $interface => $values) {
             foreach ((array) $values as $field => $value) {
@@ -104,18 +120,6 @@ final class BuildDeviceSheet
         }
 
         return $fields;
-    }
-
-    /** `facts.dsd_max` and `dsd_max` name the same field. */
-    private function normalizeKeys(array $map): array
-    {
-        $out = [];
-        foreach ($map as $key => $value) {
-            $key = (string) $key;
-            $out[str_starts_with($key, 'facts.') ? substr($key, 6) : $key] = $value;
-        }
-
-        return $out;
     }
 
     private function proofKey(array $proof): string
@@ -133,7 +137,7 @@ final class BuildDeviceSheet
         $url = is_string($source['url'] ?? null) && preg_match('#^https?://#i', $source['url']) ? $source['url'] : null;
 
         return [
-            'type' => is_string($source['type'] ?? null) ? $source['type'] : null,
+            'type' => is_string($source['kind'] ?? null) ? $source['kind'] : (is_string($source['type'] ?? null) ? $source['type'] : null),
             'url' => $url,
             'quote' => is_string($source['quote'] ?? null) ? $source['quote'] : null,
             'read_on' => is_string($source['read_on'] ?? null) ? $source['read_on'] : null,
@@ -153,6 +157,9 @@ final class BuildDeviceSheet
                 'value' => $candidate['value'] ?? null,
                 'chosen' => (bool) ($candidate['chosen'] ?? false),
                 'weight' => $candidate['weight'] ?? null,
+                'claims' => $candidate['claims'] ?? null,
+                'claim' => is_string($candidate['claim'] ?? null) ? $candidate['claim'] : null,
+                'submitted_by' => is_string($candidate['submitted_by'] ?? null) ? $candidate['submitted_by'] : null,
                 'source' => $this->source($candidate),
             ];
         }
@@ -166,7 +173,10 @@ final class BuildDeviceSheet
             return ['text' => trim($doubt)];
         }
         if (is_array($doubt) && is_string($doubt['text'] ?? $doubt['question'] ?? null)) {
-            return ['text' => $doubt['text'] ?? $doubt['question'], 'fields' => array_values((array) ($doubt['fields'] ?? []))];
+            return [
+                'text' => $doubt['text'] ?? $doubt['question'],
+                'raised_on' => is_string($doubt['raised_on'] ?? null) ? $doubt['raised_on'] : null,
+            ];
         }
 
         return null;

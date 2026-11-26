@@ -20,6 +20,7 @@ class OdacIngest extends Command
 
     public function handle(IngestArtifact $ingest): int
     {
+        $started = hrtime(true);
         $lock = Cache::lock('odac:ingest', 600);
         if (! $lock->get()) {
             $this->warn('Another ingestion is running.');
@@ -49,9 +50,10 @@ class OdacIngest extends Command
         }
 
         $this->info(sprintf(
-            '%s: %s (%s, %d entries, %d bytes, %d compressed)',
+            '%s: %s (%s, %d entries, %d bytes, %d compressed) in %.2f s, peak memory %.1f MB',
             $status, $snapshot->filename, $snapshot->fingerprint, $snapshot->entries,
             $snapshot->bytes, $snapshot->gzip_bytes,
+            (hrtime(true) - $started) / 1e9, memory_get_peak_usage(true) / 1048576,
         ));
 
         return self::SUCCESS;

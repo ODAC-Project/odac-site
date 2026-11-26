@@ -18,7 +18,7 @@ final class ArtifactReader
 
     public const DEVICE_ID_PATTERN = '/^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*$/';
 
-    /** @return Generator<int, array{type: string, id: string, data: array}> */
+    /** @return Generator<int, array{type: string, id: string, data: mixed}> */
     public static function entries(string $path): Generator
     {
         $file = new SplFileObject($path, 'r');
@@ -38,8 +38,12 @@ final class ArtifactReader
                 || ! in_array($entry['type'] ?? null, self::TYPES, true)
                 || ! is_string($entry['id'] ?? null)
                 || ! preg_match(self::ID_PATTERN, $entry['id'])
-                || ! is_array($entry['data'] ?? null)) {
+                || ! array_key_exists('data', $entry)) {
                 throw new IngestionFailed("Artifact line {$line}: expected {\"type\", \"id\", \"data\"} with a known type.");
+            }
+            // A vocabulary entry may be plain prose; brands and devices are objects.
+            if (in_array($entry['type'], ['brand', 'device'], true) && ! is_array($entry['data'])) {
+                throw new IngestionFailed("Artifact line {$line}: a {$entry['type']} carries an object.");
             }
             if ($entry['type'] === 'device' && ! preg_match(self::DEVICE_ID_PATTERN, $entry['id'])) {
                 throw new IngestionFailed("Artifact line {$line}: a device id is \"<brand>/<model>\", got \"{$entry['id']}\".");

@@ -5,11 +5,11 @@
 return [
 
     /*
-    | Where the CI publishes `latest.json` and the fingerprinted artifact.
-    | Either an http(s) base URL (the `dist/` folder) or a local directory.
-    | No default on purpose: the public repository is not pushed yet.
+    | Where the CI publishes `latest.json` (the artifact sits next to it, its
+    | name in the pointer resolves relative to it). The URL or path of
+    | latest.json itself, or of the folder holding it.
     */
-    'source' => env('ODAC_SOURCE', ''),
+    'source' => env('ODAC_SOURCE', 'https://raw.githubusercontent.com/ODAC-Project/ODAC/main/dist/latest.json'),
 
     /*
     | Local directory (under storage/app) that keeps EVERY ingested artifact.
@@ -20,8 +20,8 @@ return [
 
     /*
     | How the fingerprint in the artifact name is derived from its bytes.
-    | `sha256-16`: the first 16 hex characters of the SHA-256 of the file.
-    | To confirm against tools/build.py once the repository is pushed.
+    | `sha256-16`: the first 16 hex characters of the SHA-256 of the file,
+    | as tools/build.py computes it (`sha256(body).hexdigest()[:16]`).
     */
     'fingerprint' => env('ODAC_FINGERPRINT', 'sha256-16'),
 

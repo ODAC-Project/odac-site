@@ -55,30 +55,55 @@ est l'empreinte qu'il détient, plus la projection lisible de cet instantané.
 Pas encore faits : la complétude (livraison 3), la comparaison (livraison 4),
 l'API `/api/*` documentée en OpenAPI et la connexion OAuth.
 
-## Le contrat avec l'artefact (hypothèses à confirmer)
+## Le contrat avec l'artefact
 
-Le dépôt n'est pas encore poussé. Le format a donc été déduit des documents de
-conception, et le lecteur a été écrit pour tolérer les écarts :
+Le format suit le dépôt public `ODAC-Project/ODAC` : `tools/build.py` et
+`docs/CONSUMING.md`.
 
-- `latest.json` : on exige que `url` vaille exactement
-  `odac-<version>-<empreinte>.jsonl` ;
-- **empreinte = les 16 premiers caractères hexadécimaux du SHA-256 des octets du
-  fichier** (`ODAC_FINGERPRINT=sha256-16`). C'est **à vérifier dans
-  `tools/build.py`** ; un autre calcul s'ajoute dans `app/Support/Odac/Fingerprint.php` ;
-- une ligne = `{"type", "id", "data"}`, avec un type parmi `brand`, `chip_family`,
-  `interface`, `vocabulary` et `device`. L'identifiant d'un appareil s'écrit
-  `<marque>/<modèle>` en minuscules ;
-- pour un appareil, `data` contient `model`, `kind`, `level`, `aliases[]`
-  (`{name, relation: spelling|edition|neighbour}`), `facts{}`, `inputs{interface:{}}`,
-  `evidence{champ: {claim, source:{type,url,quote,read_on,names_subject}, weight, submitted_by, submitted_on}}`,
-  `contested{champ: [{value, chosen, weight, source}]}`, `open_doubt` et `superseded_by`.
+- **Source** : `ODAC_SOURCE` donne l'URL de `latest.json` lui-même, par défaut
+  `https://raw.githubusercontent.com/ODAC-Project/ODAC/main/dist/latest.json`. On
+  peut aussi donner le dossier `dist/`. Le champ `url` du pointeur est un **nom de
+  fichier nu**, résolu **à côté** de `latest.json`, donc dans le même dossier.
+- **Empreinte** : `sha256(corps)[:16]`, exactement le calcul de `build.py`. Le
+  champ `url` doit valoir `odac-<version>-<empreinte>.jsonl`.
+- **Une ligne** : `{"type", "id", "data"}`, avec un type parmi `brand`,
+  `chip_family`, `interface`, `vocabulary` et `device`. Une entrée de vocabulaire
+  peut être du texte simple ; une marque et un appareil sont des objets.
+- **Un appareil** :
+  - ses faits résolus sont les **clés de premier niveau** de `data`. Les clés
+    `id`, `brand`, `model`, `kind`, `aliases`, `usb`, `inputs`, `evidence`,
+    `contested` et `open_doubt` n'en sont pas, ni les clés `_…`, qui sont le
+    commentaire des curateurs et ne s'affichent jamais comme des faits ;
+  - `data.brand` est l'identifiant de l'entité marque (`audio_gd`). Il peut
+    différer du premier segment de l'identifiant (`audio-gd/…`) ;
+  - `aliases` est une liste de `{relation, text}`. Un alias non typé est lu comme
+    un voisin, par prudence ;
+  - `evidence` associe à chaque champ `{claim, names_subject, source:{kind, url, quote, read_on}, submitted_by}`.
+    Les clés des entrées s'écrivent `inputs.<interface>.<champ>` ;
+  - `contested` associe à chaque champ une liste de valeurs `{value, weight, claims, chosen, claim, source, …}` ;
+  - `open_doubt` vaut `{raised_on, text}`.
+- **Le niveau atteint** n'est pas dans l'artefact. Il se calcule à partir de
+  `vocabulary/completeness`, ce que fera la livraison 3. En attendant, il
+  s'affiche « non établi ».
 
 Un artefact incohérent est **refusé en entier** : empreinte fausse, nombre
 d'entrées différent, ligne invalide, doublon, identifiant hors motif ou appareil
 sans `kind`. Le site continue alors de servir l'instantané précédent.
 
-L'artefact de démonstration (`tests/Fixtures/odac/`) est inventé : marques
-fictives, citations neutres, adresses `example.org`.
+**Mesure sur le vrai artefact** (`odac-2026.11.25-9237787e4341db0e.jsonl`, 735
+entrées, 373 appareils), dans Docker avec PHP 8.4 :
+
+- l'ingestion complète prend 1,8 s, avec un pic de mémoire PHP de 36 Mo (64 Mo
+  pour le processus) ;
+- les 373 fiches se construisent sans erreur en 1,2 s ;
+- le miroir envoie **330 840 octets** compressés pour 5 548 535 octets bruts, soit
+  94 % de gain ;
+- un 304 sur `latest.json` répond en 40 ms environ avec `artisan serve` ;
+- 9 alias de graphie redirigent en 301.
+
+Les fixtures de test (`tests/Fixtures/odac/`) suivent ce format, mais leur contenu
+est inventé : marques fictives, citations neutres, adresses `example.org`. Aucune
+citation de fabricant n'est versée dans ce dépôt.
 
 ## Développement local
 
@@ -131,8 +156,8 @@ La base SQLite et les artefacts vivent dans des volumes (`odac-db`,
 |---|---|
 | `APP_KEY` | requis par Laravel, même sans session |
 | `APP_URL` | `https://odac.tune.audio` (redirections et liens de pagination en https) |
-| `ODAC_SOURCE` | URL du `dist/` publié par la CI du dépôt public, ou un dossier local |
-| `ODAC_FINGERPRINT` | `sha256-16`, à confirmer |
+| `ODAC_SOURCE` | URL de `latest.json` (par défaut celle de GitHub), du dossier `dist/`, ou un chemin local |
+| `ODAC_FINGERPRINT` | `sha256-16`, le calcul de `tools/build.py` |
 | `ODAC_TRUSTED_PROXIES` | vide avec ce montage (voir plus bas) ; jamais `*` |
 | `ODAC_CONTRIBUTE_URL` | page de contribution sur mozaiklabs.fr ; vide = pas de bouton |
 | `ODAC_MAX_ARTIFACT_BYTES`, `ODAC_HTTP_TIMEOUT` | garde-fous de l'ingestion |
@@ -187,13 +212,13 @@ repose au-delà de 1 Mo compressé.**
 
 ## Points ouverts
 
-1. **Adresse d'une fiche** : `/<marque>/<modèle>` est retenue ici, sans préfixe.
-   Le document 2 écrit aussi `/odac/<marque>/<modèle>`. L'adresse se gèle une fois
-   annoncée. Les premiers segments `artifacts`, `api`, `dist`, `odac`, `build`,
+1. **Adresse d'une fiche** : décidée, c'est `odac.tune.audio/<marque>/<modèle>`,
+   sans préfixe. Les premiers segments `artifacts`, `api`, `dist`, `odac`, `build`,
    `storage` et `up` sont réservés : ils ne peuvent pas servir de nom de marque.
-2. **Chemin du miroir** : on sert `/latest.json` et `/artifacts/<nom>`. Le document 2
-   parle de `/dist/latest.json`. Il faut vérifier ce que promet `CONSUMING.md`
-   avant d'annoncer l'adresse à Tune.
-3. **Calcul de l'empreinte** : à confirmer dans `tools/build.py`.
-4. **Base** : SQLite suffit pour l'état d'un miroir. PostgreSQL 16 deviendra utile
-   le jour où le site portera la file de contribution (montage 1 du document 2).
+2. **Adresse du miroir, à confirmer** : `docs/CONSUMING.md` annonce un miroir
+   MozAIk Labs « URL to be announced » sans fixer de chemin. On garde donc
+   `/latest.json` et `/artifacts/<nom>`. Une fois l'adresse choisie, il faudra
+   l'écrire dans `CONSUMING.md`. Le même texte promet aussi un miroir « derrière un
+   CDN », alors que la décision actuelle est un VPS sans CDN.
+3. **Niveau de complétude** : à calculer à partir de `vocabulary/completeness`
+   (livraison 3).

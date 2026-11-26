@@ -62,7 +62,8 @@ it('shows a sheet grouped by proof, each quote once, with rival values', functio
             ->where('sheet.identity.brand', 'Atelier Démo')
             ->where('sheet.identity.model', 'Convertisseur Un')
             ->count('sheet.proofs', 3)
-            ->where('sheet.proofs.0.claim', '001-fiche-technique')
+            ->where('sheet.proofs.0.claim', '001-fiche-technique.json')
+            ->where('sheet.proofs.0.source.type', 'datasheet')
             ->count('sheet.proofs.0.fields', 4)
             ->where('sheet.proofs.2.source.names_subject', false)
             ->where('sheet.summary', function ($summary) {
@@ -74,8 +75,12 @@ it('shows a sheet grouped by proof, each quote once, with rival values', functio
                     && $rows['dsd_max']['contested'][1]['value'] === 'none'
                     && $rows['dsd_direct']['value'] === 'to_be_measured'
                     && $rows['dsd_direct']['proof'] === null
-                    && $rows['inputs.spdif_coax.pcm_max_hz']['proof'] === 2;
+                    && $rows['inputs.spdif_coax.pcm_max_hz']['proof'] === 2
+                    && ! $rows->has('_why') && ! $rows->has('usb') && ! $rows->has('brand')
+                    && $rows['device_settings']['value'][0]['set_to'] === 'lent';
             })
+            ->where('sheet.identity.usb_ids.0.pid', '0x0001')
+            ->where('sheet.open_doubt.raised_on', '2026-11-22')
             ->where('sheet.open_doubt.text', fn ($t) => str_contains($t, 'mesurer')));
 });
 

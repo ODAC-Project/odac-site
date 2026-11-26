@@ -67,7 +67,12 @@ final class ProjectSnapshot
     private function device(OdacSnapshot $snapshot, string $id, array $data, array $brands): array
     {
         [$brandSlug, $modelSlug] = explode('/', $id, 2);
-        $brandName = $this->text($brands[$brandSlug]['name'] ?? null) ?? $this->text($data['brand_name'] ?? null) ?? $brandSlug;
+        // `data.brand` is the brand entity id (`audio_gd`), which is not always
+        // the first segment of the device id (`audio-gd/...`).
+        $brandRef = is_string($data['brand'] ?? null) ? $data['brand'] : $brandSlug;
+        $brandName = $this->text($brands[$brandRef]['name'] ?? null)
+            ?? $this->text($brands[$brandSlug]['name'] ?? null)
+            ?? $brandSlug;
         $modelName = $this->text($data['model'] ?? null) ?? $this->text($data['name'] ?? null) ?? $modelSlug;
 
         $search = [$brandName, $modelName, $brandSlug, $modelSlug];
@@ -117,7 +122,7 @@ final class ProjectSnapshot
     }
 
     /**
-     * Aliases are typed: `spelling` (same object written otherwise), `edition`
+     * Aliases are `{"relation", "text"}` and typed: `spelling` (same object written otherwise), `edition`
      * (a variant no fact tells apart yet), `neighbour` (a DIFFERENT product).
      *
      * @return list<array{name: string, relation: string}>
@@ -128,11 +133,13 @@ final class ProjectSnapshot
         foreach ((array) ($data['aliases'] ?? []) as $alias) {
             if (is_string($alias)) {
                 // Untyped: it may well be a neighbour, read it as one.
-                $alias = ['name' => $alias, 'relation' => 'neighbour'];
+                $alias = ['text' => $alias, 'relation' => 'neighbour'];
             }
-            if (! is_array($alias) || ! is_string($alias['name'] ?? null) || trim($alias['name']) === '') {
+            $name = is_array($alias) ? ($alias['text'] ?? $alias['name'] ?? null) : null;
+            if (! is_string($name) || trim($name) === '') {
                 continue;
             }
+            $alias['name'] = $name;
             $relation = in_array($alias['relation'] ?? null, ['spelling', 'edition', 'neighbour'], true)
                 ? $alias['relation'] : 'neighbour'; // unknown relation: the cautious reading
             $out[] = ['name' => trim($alias['name']), 'relation' => $relation];

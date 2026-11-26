@@ -24,6 +24,8 @@ abstract class TestCase extends BaseTestCase
         $this->app->useStoragePath($storage);
 
         $this->withoutVite();
+        // Never reach the real source (raw.githubusercontent.com) from a test.
+        \Illuminate\Support\Facades\Http::preventStrayRequests();
     }
 
     protected function tearDown(): void

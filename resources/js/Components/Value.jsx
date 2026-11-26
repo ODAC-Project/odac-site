@@ -35,6 +35,19 @@ export default function Value({ field, value }) {
         );
     }
     if (typeof value === 'string') return value;
+    // device_settings: [{setting, set_to, why}]
+    if (Array.isArray(value) && value.every((v) => v && typeof v === 'object' && 'setting' in v)) {
+        return (
+            <ul className="list-disc pl-4">
+                {value.map((v, i) => (
+                    <li key={i}>
+                        {v.setting} : <strong>{v.set_to}</strong>
+                        {v.why && <span className="block text-xs text-stone-600">{v.why}</span>}
+                    </li>
+                ))}
+            </ul>
+        );
+    }
     if (Array.isArray(value)) return value.map((v) => (typeof v === 'object' ? JSON.stringify(v) : String(v))).join(', ');
     return <code className="text-xs">{JSON.stringify(value)}</code>;
 }

@@ -105,6 +105,7 @@ it('refuses malformed lines and device ids that are not brand/model', function (
     'one-segment device id' => ['{"type":"device","id":"seul","data":{"kind":"dac"}}'],
     'path traversal id' => ['{"type":"device","id":"../x","data":{"kind":"dac"}}'],
     'device without kind' => ['{"type":"device","id":"a/b","data":{}}'],
+    'device as a string' => ['{"type":"device","id":"a/b","data":"texte"}'],
     'duplicate' => [odac_device_line('banc-essai/modele-a2')],
 ]);
 
@@ -139,6 +140,32 @@ it('stores spelling aliases as redirects, never neighbours', function () {
 
     $search = OdacDevice::where('odac_id', 'atelier-demo/convertisseur-un')->value('search_text');
     expect($search)->toContain('convertisseur un se')->not->toContain('convertisseur deux');
+});
+
+it('takes the URL of latest.json itself and resolves the artifact next to it', function () {
+    $jsonl = odac_demo_jsonl();
+    $fingerprint = substr(hash('sha256', $jsonl), 0, 16);
+    $name = "odac-2026.11.26-{$fingerprint}.jsonl";
+    $pointer = json_encode(['version' => '2026.11.26', 'fingerprint' => $fingerprint, 'url' => $name, 'entries' => 10], JSON_PRETTY_PRINT);
+    Http::fake([
+        'https://raw.example.org/org/repo/main/dist/latest.json' => Http::response($pointer),
+        "https://raw.example.org/org/repo/main/dist/{$name}" => Http::response($jsonl),
+    ]);
+
+    $this->artisan('odac:ingest', ['--source' => 'https://raw.example.org/org/repo/main/dist/latest.json'])->assertSuccessful();
+    expect(OdacSnapshot::current()->fingerprint)->toBe($fingerprint);
+});
+
+it('reads the brand name through data.brand, which may differ from the id prefix', function () {
+    $dist = odac_publish(odac_tmp_dir('dist'), odac_demo_jsonl());
+    $this->artisan('odac:ingest', ['--source' => $dist['dir'].'/latest.json'])->assertSuccessful();
+
+    expect(OdacDevice::where('odac_id', 'banc-essai/modele-a2')->value('brand_name'))->toBe("Banc d'Essai");
+});
+
+it('accepts a vocabulary entry written as plain prose', function () {
+    $dist = odac_publish(odac_tmp_dir('dist'), odac_demo_jsonl().'{"data":"Texte de démonstration.","id":"purpose","type":"vocabulary"}'."\n");
+    $this->artisan('odac:ingest', ['--source' => $dist['dir']])->assertSuccessful();
 });
 
 it('fails cleanly without a configured source', function () {

@@ -7,19 +7,28 @@ namespace App\Support\Odac;
 use Illuminate\Support\Facades\Http;
 
 /**
- * Reads the distribution published by the ODAC CI: an http(s) base URL (the
- * repository's `dist/`) or a local directory (tests, offline runs).
+ * Reads the distribution published by the ODAC CI. The source is either the
+ * URL (or path) of `latest.json` itself, or the `dist/` folder holding it.
+ * The pointer's `url` is a bare file name: it resolves RELATIVE to
+ * `latest.json`, i.e. in the same folder.
  */
 final class ArtifactSource
 {
+    private readonly string $base;
+
     public function __construct(
-        private readonly string $base,
+        string $source,
         private readonly int $timeout = 30,
         private readonly int $maxBytes = 64 * 1024 * 1024,
     ) {
-        if (trim($base) === '') {
+        $source = trim($source);
+        if ($source === '') {
             throw new IngestionFailed('No ODAC source configured (ODAC_SOURCE).');
         }
+        // `.../dist/latest.json` and `.../dist` name the same folder.
+        $this->base = str_ends_with($source, '/latest.json') || $source === 'latest.json'
+            ? substr($source, 0, -strlen('latest.json'))
+            : $source;
     }
 
     public function isRemote(): bool
@@ -29,9 +38,9 @@ final class ArtifactSource
 
     public function describe(string $name): string
     {
-        return $this->isRemote()
-            ? rtrim($this->base, '/').'/'.$name
-            : rtrim($this->base, '/').DIRECTORY_SEPARATOR.$name;
+        $base = rtrim($this->base, '/'.DIRECTORY_SEPARATOR);
+
+        return ($base === '' ? '.' : $base).'/'.$name;
     }
 
     public function pointer(): Pointer
