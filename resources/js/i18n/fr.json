@@ -215,7 +215,7 @@
         "dop": "DSD sur PCM (DoP)",
         "inputs": "Entrées",
         "bits": "Résolution",
-        "chip": "Puce",
+        "chip": "Étage de conversion",
         "family": "Famille de puce",
         "technology": "Technologie",
         "device_settings": "Réglages de l’appareil",

@@ -215,7 +215,7 @@
         "dop": "DSD over PCM (DoP)",
         "inputs": "Inputs",
         "bits": "Bit depth",
-        "chip": "Chip",
+        "chip": "Conversion stage",
         "family": "Chip family",
         "technology": "Technology",
         "device_settings": "Device settings",
