@@ -1,0 +1,9 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+@import 'tailwindcss';
+
+@source '../**/*.blade.php';
+@source '../**/*.jsx';
+
+@theme {
+    --font-sans: ui-sans-serif, system-ui, sans-serif;
+}

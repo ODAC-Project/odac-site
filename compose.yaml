@@ -1,0 +1,54 @@
+# SPDX-License-Identifier: Apache-2.0
+# odac.tune.audio — app (PHP-FPM), scheduler (ingestion), nginx.
+services:
+  odac-app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: app
+    env_file: .env
+    environment:
+      DB_DATABASE: /var/www/odac/database/data/odac.sqlite
+    volumes:
+      - odac-storage:/var/www/odac/storage
+      - odac-db:/var/www/odac/database/data
+    restart: unless-stopped
+
+  # Runs `schedule:run` every minute; odac:ingest is scheduled every 10 min.
+  odac-scheduler:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: app
+    env_file: .env
+    environment:
+      DB_DATABASE: /var/www/odac/database/data/odac.sqlite
+    volumes:
+      - odac-storage:/var/www/odac/storage
+      - odac-db:/var/www/odac/database/data
+    command: ["php", "artisan", "schedule:work"]
+    restart: unless-stopped
+
+  odac-nginx:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: web
+    depends_on: [odac-app]
+    # Bound to localhost: the host's TLS nginx proxies to it.
+    ports:
+      - "127.0.0.1:8080:80"
+    restart: unless-stopped
+
+# Fixed subnet: the container nginx trusts X-Forwarded-For only from the
+# gateway (the host's TLS nginx), see docker/nginx.conf.
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.30.57.0/24
+          gateway: 172.30.57.1
+
+volumes:
+  odac-storage:
+  odac-db:
