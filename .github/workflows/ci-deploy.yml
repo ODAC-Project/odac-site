@@ -1,0 +1,56 @@
+# SPDX-License-Identifier: Apache-2.0
+# Tests on every PR and push; deployment of odac.tune.audio after a green push on main.
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund && npm run build
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite, sqlite3, zlib
+          coverage: none
+      - run: composer install --prefer-dist --no-interaction --no-progress
+      - run: cp .env.example .env && php artisan key:generate
+      - run: php vendor/bin/pest
+  deploy:
+    needs: tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    concurrency:
+      group: deploy-odac
+      cancel-in-progress: false
+    steps:
+      - name: Déploiement sur odac.tune.audio
+        env:
+          KEY: ${{ secrets.ODAC_DEPLOY_KEY }}
+          KNOWN: ${{ secrets.ODAC_DEPLOY_KNOWN_HOSTS }}
+          HOST: ${{ vars.ODAC_DEPLOY_HOST }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$KNOWN" > ~/.ssh/known_hosts
+          # The key is restricted server-side to one forced command (/opt/odac/deploy.sh).
+          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o BatchMode=yes "root@$HOST"
+      - name: Vérification publique
+        run: |
+          for p in / /latest.json /health; do
+            c=$(curl -s -o /dev/null -w '%{http_code}' "https://odac.tune.audio$p"); echo "$c $p"; [ "$c" = 200 ]
+          done
