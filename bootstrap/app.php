@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\SetLocale;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Application;
@@ -29,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
             ShareErrorsFromSession::class,
             ValidateCsrfToken::class,
         ], append: [
+            SetLocale::class,
             HandleInertiaRequests::class,
         ]);
     })

@@ -10,7 +10,7 @@ beforeEach(function () {
 });
 
 it('lists devices, hiding replaced sheets, with a public Cache-Control and no cookie', function () {
-    $response = $this->get('/');
+    $response = $this->get('/devices');
 
     $response->assertOk()
         ->assertHeader('Cache-Control', 'max-age=300, public')
@@ -20,10 +20,18 @@ it('lists devices, hiding replaced sheets, with a public Cache-Control and no co
             ->where('devices.data.0.odac_id', 'atelier-demo/convertisseur-un')
             ->where('snapshot.fingerprint', $this->dist['fingerprint']));
     expect($response->headers->getCookies())->toBe([]);
+    expect($response->headers->get('Vary'))->toBe('X-Inertia, Accept-Language, Cookie');
+});
+
+it('keeps the old list addresses: /?q=… answers a 301 to /devices', function () {
+    $this->get('/?q=lecteur&kind=network_player')
+        ->assertStatus(301)
+        ->assertRedirect('/devices?q=lecteur&kind=network_player');
+    $this->get('/?page=2')->assertStatus(301)->assertRedirect('/devices?page=2');
 });
 
 it('filters by search (name and alias), brand, kind, contested and doubt', function (array $query, array $ids) {
-    $this->get('/?'.http_build_query($query))
+    $this->get('/devices?'.http_build_query($query))
         ->assertInertia(fn (Assert $page) => $page
             ->where('devices.total', count($ids))
             ->where('devices.data', fn ($data) => collect($data)->pluck('odac_id')->all() === $ids));
@@ -36,6 +44,9 @@ it('filters by search (name and alias), brand, kind, contested and doubt', funct
     'kind' => [['kind' => 'network_player'], ['atelier-demo/lecteur-reseau']],
     'contested' => [['contested' => 1], ['atelier-demo/convertisseur-un']],
     'open doubt' => [['doubt' => 1], ['atelier-demo/convertisseur-un']],
+    'level 2 and above' => [['level' => 2], ['atelier-demo/convertisseur-un']],
+    'level 3 and above' => [['level' => 3], []],
+    'chip family' => [['family' => 'delta_sigma_generic'], ['atelier-demo/convertisseur-un']],
 ]);
 
 it('paginates by 48 and keeps the filters in the links', function () {
@@ -46,7 +57,7 @@ it('paginates by 48 and keeps the filters in the links', function () {
     odac_publish($this->dist['dir'], $lines, '2026.11.27');
     $this->artisan('odac:ingest', ['--source' => $this->dist['dir']])->assertSuccessful();
 
-    $this->get('/?brand=serie&page=2')->assertInertia(fn (Assert $page) => $page
+    $this->get('/devices?brand=serie&page=2')->assertInertia(fn (Assert $page) => $page
         ->where('devices.total', 60)
         ->where('devices.per_page', 48)
         ->where('devices.current_page', 2)

@@ -56,13 +56,17 @@ final class ArtifactReader
     /**
      * Full validation pass, before anything is stored.
      *
-     * @return array{entries: int, devices: int, brands: array<string, array>}
+     * `levels` is the completeness vocabulary (`level => fields`), the only
+     * criterion the site applies to place a device on a level.
+     *
+     * @return array{entries: int, devices: int, brands: array<string, array>, levels: array<int, list<string>>}
      */
     public static function scan(string $path): array
     {
         $count = 0;
         $devices = 0;
         $brands = [];
+        $levels = [];
         $seen = [];
         foreach (self::entries($path) as $line => $entry) {
             $key = $entry['type'].':'.$entry['id'];
@@ -73,6 +77,8 @@ final class ArtifactReader
             $count++;
             if ($entry['type'] === 'brand') {
                 $brands[$entry['id']] = $entry['data'];
+            } elseif ($entry['type'] === 'vocabulary' && $entry['id'] === 'completeness') {
+                $levels = self::levels($entry['data']);
             } elseif ($entry['type'] === 'device') {
                 $devices++;
                 if (! is_string($entry['data']['kind'] ?? null) || $entry['data']['kind'] === '') {
@@ -81,6 +87,24 @@ final class ArtifactReader
             }
         }
 
-        return ['entries' => $count, 'devices' => $devices, 'brands' => $brands];
+        return ['entries' => $count, 'devices' => $devices, 'brands' => $brands, 'levels' => $levels];
+    }
+
+    /**
+     * `vocabulary/completeness` -> `[level => [field, ...]]`.
+     *
+     * @return array<int, list<string>>
+     */
+    public static function levels(mixed $vocabulary): array
+    {
+        $levels = [];
+        foreach ((array) (is_array($vocabulary) ? ($vocabulary['levels'] ?? []) : []) as $level) {
+            if (is_array($level) && is_int($level['level'] ?? null) && is_array($level['fields'] ?? null)) {
+                $levels[$level['level']] = array_values(array_filter($level['fields'], 'is_string'));
+            }
+        }
+        ksort($levels);
+
+        return $levels;
     }
 }

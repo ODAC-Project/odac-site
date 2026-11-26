@@ -4,6 +4,47 @@
 @source '../**/*.blade.php';
 @source '../**/*.jsx';
 
+/* One dark theme: night-blue ground, cards one step lighter, one accent. */
 @theme {
-    --font-sans: ui-sans-serif, system-ui, sans-serif;
+    --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+    --color-ink-950: #0b1120;
+    --color-ink-900: #0f172a;
+    --color-ink-850: #141e33;
+    --color-ink-800: #1a2540;
+    --color-ink-750: #202c4a;
+    --color-ink-700: #2a3758;
+    --color-ink-600: #3b4a6e;
+    --color-ink-500: #64739a;
+    --color-ink-400: #8b97b6;
+    --color-ink-300: #b4bed4;
+    --color-ink-200: #d3d9e7;
+    --color-ink-100: #e8ecf5;
+
+    --color-accent-300: #5eead4;
+    --color-accent-400: #2dd4bf;
+    --color-accent-500: #14b8a6;
+    --color-accent-900: #0d3b3a;
+}
+
+@layer base {
+    html {
+        color-scheme: dark;
+        background: var(--color-ink-950);
+    }
+    body {
+        background: var(--color-ink-950);
+        color: var(--color-ink-100);
+    }
+    a {
+        text-underline-offset: 3px;
+    }
+    :focus-visible {
+        outline: 2px solid var(--color-accent-400);
+        outline-offset: 2px;
+    }
+    code {
+        font-family: var(--font-mono);
+    }
 }

@@ -46,7 +46,7 @@ final class IngestArtifact
             // Already on disk (a rollback upstream, or --force): no download.
             $this->verify($known->artifactPath(), $pointer->fingerprint);
             $scan = $this->scan($known->artifactPath(), $pointer->entries);
-            $this->activate($known, $scan['brands']);
+            $this->activate($known, $scan['brands'], $scan['levels']);
 
             return ['status' => self::REACTIVATED, 'snapshot' => $known->refresh()];
         }
@@ -85,7 +85,7 @@ final class IngestArtifact
             'ingested_at' => Carbon::now(),
         ]);
 
-        $this->activate($snapshot, $scan['brands']);
+        $this->activate($snapshot, $scan['brands'], $scan['levels']);
 
         return ['status' => self::INGESTED, 'snapshot' => $snapshot->refresh()];
     }
@@ -128,12 +128,12 @@ final class IngestArtifact
         return (int) filesize($target);
     }
 
-    private function activate(OdacSnapshot $snapshot, array $brands): void
+    private function activate(OdacSnapshot $snapshot, array $brands, array $levels): void
     {
-        DB::transaction(function () use ($snapshot, $brands) {
+        DB::transaction(function () use ($snapshot, $brands, $levels) {
             $snapshot->is_current = false;
             $snapshot->save();
-            ($this->project)($snapshot, $brands);
+            ($this->project)($snapshot, $brands, $levels);
             OdacSnapshot::query()->where('id', '!=', $snapshot->id)->update(['is_current' => false]);
             $snapshot->is_current = true;
             $snapshot->activated_at = Carbon::now();

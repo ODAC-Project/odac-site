@@ -8,6 +8,7 @@ use App\Models\OdacAlias;
 use App\Models\OdacDevice;
 use App\Models\OdacSnapshot;
 use App\Support\Odac\ArtifactReader;
+use App\Support\Odac\Completeness;
 use Illuminate\Support\Str;
 
 /**
@@ -19,8 +20,11 @@ final class ProjectSnapshot
 {
     private const CHUNK = 200;
 
-    /** @param array<string, array> $brands */
-    public function __invoke(OdacSnapshot $snapshot, array $brands): int
+    /**
+     * @param  array<string, array>  $brands
+     * @param  array<int, list<string>>  $levels  the completeness vocabulary
+     */
+    public function __invoke(OdacSnapshot $snapshot, array $brands, array $levels = []): int
     {
         OdacAlias::query()->delete();
         OdacDevice::query()->delete();
@@ -34,7 +38,7 @@ final class ProjectSnapshot
             if ($entry['type'] !== 'device') {
                 continue;
             }
-            $row = $this->device($snapshot, $entry['id'], $entry['data'], $brands);
+            $row = $this->device($snapshot, $entry['id'], $entry['data'], $brands, $levels);
             $devices[] = $row;
             $taken[$entry['id']] = true;
             foreach ($this->spellingPaths($row['brand_slug'], $entry['data']) as $path) {
@@ -64,7 +68,7 @@ final class ProjectSnapshot
         return $count;
     }
 
-    private function device(OdacSnapshot $snapshot, string $id, array $data, array $brands): array
+    private function device(OdacSnapshot $snapshot, string $id, array $data, array $brands, array $levels): array
     {
         [$brandSlug, $modelSlug] = explode('/', $id, 2);
         // `data.brand` is the brand entity id (`audio_gd`), which is not always
@@ -83,7 +87,9 @@ final class ProjectSnapshot
             }
         }
 
-        $level = $data['level'] ?? null;
+        // The level is not in the artifact: it is computed from the
+        // vocabulary's own field list, never from a stored figure.
+        $level = Completeness::level($data, $levels);
 
         return [
             'snapshot_id' => $snapshot->id,

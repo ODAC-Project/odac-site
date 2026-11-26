@@ -52,8 +52,38 @@ est l'empreinte qu'il détient, plus la projection lisible de cet instantané.
 - ETag de fiche calculé sur des valeurs stockées (empreinte, identifiant, version
   des assets) ; `Cache-Control: max-age=300, public` ; `Vary: X-Inertia`.
 
-Pas encore faits : la complétude (livraison 3), la comparaison (livraison 4),
-l'API `/api/*` documentée en OpenAPI et la connexion OAuth.
+**Livraisons 3 et 4 : l'interface complète** (thème sombre, barre latérale, FR/EN)
+
+| route | page |
+|---|---|
+| `GET /` | accueil : recherche, aperçu de la base, contributeurs et sources les plus cités |
+| `GET /devices` | la liste (anciennement `/?q=…`, qui répond désormais un 301 vers `/devices?q=…`) ; filtres `q`, `brand`, `kind`, `level` (au moins), `family`, `contested`, `doubt` |
+| `GET /brands`, `/chips` | marques et familles de puces, avec leurs comptes |
+| `GET /stats` | répartition par type, niveau, marque, famille ; contributeurs et sources |
+| `GET /health` | complétude niveaux 2 et 3, champs les moins renseignés, signaux |
+| `GET /compare?d[]=<id>&d[]=<id>` | 2 à 4 appareils côte à côte, écarts mis en évidence |
+| `GET /contribute`, `/help` | comment contribuer (PR GitHub + DCO), FAQ |
+
+- **Niveau de complétude** : calculé à l'ingestion à partir de
+  `vocabulary/completeness` (même lecture que `tools/verifier.py`) et rangé dans
+  la colonne `level` de la projection. Niveau 2 ou 3 si la liste de champs est
+  complète (le 3 sur le 2), sinon 1 avec une identité USB ou une
+  `device_match`, sinon 0. Sans vocabulaire : inconnu. Sur l'artefact du
+  2026-11-25 : 91 appareils au niveau 2, 0 au niveau 3.
+- **Chiffres** : calculés une fois par empreinte (`CatalogueStats`, cache de
+  l'application), depuis la projection et l'artefact local. Aucun appel réseau.
+- **Langues** : `?lang=fr|en`, puis le cookie de préférence `odac_lang` (posé
+  par le sélecteur, dans le navigateur ; le serveur n'en pose jamais), puis
+  `Accept-Language` (français si la première langue est le français, anglais
+  sinon). Dictionnaires : `resources/js/i18n/{fr,en}.json`, un test vérifie
+  qu'ils ont les mêmes clés. Les noms de champs et les citations ne se
+  traduisent pas. Chaque page porte `hreflang` (fr, en, x-default = en) et
+  `Vary: X-Inertia, Accept-Language, Cookie` ; le miroir ne varie pas.
+- Toutes les pages de lecture ont un ETag calculé sur des valeurs stockées
+  (empreinte, adresse, version des assets, langue).
+
+Pas encore faits : l'API `/api/*` documentée en OpenAPI, le formulaire de
+contribution et la connexion OAuth.
 
 ## Le contrat avec l'artefact
 
@@ -83,8 +113,7 @@ Le format suit le dépôt public `ODAC-Project/ODAC` : `tools/build.py` et
   - `contested` associe à chaque champ une liste de valeurs `{value, weight, claims, chosen, claim, source, …}` ;
   - `open_doubt` vaut `{raised_on, text}`.
 - **Le niveau atteint** n'est pas dans l'artefact. Il se calcule à partir de
-  `vocabulary/completeness`, ce que fera la livraison 3. En attendant, il
-  s'affiche « non établi ».
+  `vocabulary/completeness` (voir plus haut).
 
 Un artefact incohérent est **refusé en entier** : empreinte fausse, nombre
 d'entrées différent, ligne invalide, doublon, identifiant hors motif ou appareil
@@ -231,5 +260,5 @@ repose au-delà de 1 Mo compressé.**
    `/latest.json` et `/artifacts/<nom>`. Une fois l'adresse choisie, il faudra
    l'écrire dans `CONSUMING.md`. Le même texte promet aussi un miroir « derrière un
    CDN », alors que la décision actuelle est un VPS sans CDN.
-3. **Niveau de complétude** : à calculer à partir de `vocabulary/completeness`
-   (livraison 3).
+3. **Niveau de complétude** : calculé depuis `vocabulary/completeness`. Le
+   niveau 1 (identité USB ou `device_match`) n'est compté qu'en dessous du 2.

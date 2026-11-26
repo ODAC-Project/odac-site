@@ -1,36 +1,43 @@
 // SPDX-License-Identifier: Apache-2.0
+import { useT } from '../i18n';
 
 // A reason is not an empty cell: "the question was asked, nobody knows yet".
-const REASONS = {
-    to_be_measured: { label: 'à mesurer', invite: true },
-    firmware_dependent: { label: 'dépend du micrologiciel' },
-    unknown: { label: 'inconnu : la question est posée' },
-    not_published: { label: 'non publié par le fabricant' },
-};
+const REASONS = ['to_be_measured', 'firmware_dependent', 'unknown', 'not_published', 'none'];
+const INVITE = ['to_be_measured'];
 
-function formatNumber(field, value) {
-    if (/_hz$/.test(field) && value >= 1000) {
-        return `${(value / 1000).toLocaleString('fr-FR')} kHz`;
-    }
-    if (/_db$/.test(field)) {
-        return `${value.toLocaleString('fr-FR')} dB`;
-    }
-    return value.toLocaleString('fr-FR');
+function formatNumber(field, value, number) {
+    if (/_hz$/.test(field) && value >= 1000) return `${number(value / 1000)} kHz`;
+    if (/_db$/.test(field)) return `${number(value)} dB`;
+    if (/(^|\.)bits$/.test(field)) return `${number(value)} bits`;
+    return number(value);
 }
 
-export default function Value({ field, value }) {
+export default function Value({ field, value, familyNames }) {
+    const { t, number, locale } = useT();
+    const colon = locale === 'fr' ? ' : ' : ': ';
+
     if (value === null || value === undefined) {
-        return <span className="text-stone-400">absent</span>;
+        return <span className="text-ink-500">{t('values.absent')}</span>;
     }
-    if (value === true) return 'oui';
-    if (value === false) return 'non';
-    if (typeof value === 'number') return formatNumber(field, value);
-    if (typeof value === 'string' && REASONS[value]) {
-        const reason = REASONS[value];
+    if (value === true) return t('values.yes');
+    if (value === false) return t('values.no');
+    if (typeof value === 'number') return formatNumber(field, value, number);
+    if (typeof value === 'string' && REASONS.includes(value)) {
+        const invite = INVITE.includes(value);
         return (
-            <span className={reason.invite ? 'rounded bg-amber-100 px-1.5 py-0.5 text-amber-900' : 'italic text-stone-600'}>
-                {reason.label}
-                {reason.invite && ' : un porteur de l’appareil peut le remplir'}
+            <span className={invite ? 'rounded bg-amber-400/10 px-1.5 py-0.5 text-amber-200 ring-1 ring-inset ring-amber-400/30' : 'italic text-ink-400'}>
+                {t(`values.reasons.${value}`)}
+                {invite && <span className="text-amber-200/80">
+                        {colon}
+                        {t('values.invite')}
+                    </span>}
+            </span>
+        );
+    }
+    if (typeof value === 'string' && field === 'family' && familyNames?.[value]) {
+        return (
+            <span>
+                {familyNames[value]} <code className="text-xs text-ink-500">{value}</code>
             </span>
         );
     }
@@ -38,16 +45,37 @@ export default function Value({ field, value }) {
     // device_settings: [{setting, set_to, why}]
     if (Array.isArray(value) && value.every((v) => v && typeof v === 'object' && 'setting' in v)) {
         return (
-            <ul className="list-disc pl-4">
+            <ul className="list-disc space-y-1 pl-4">
                 {value.map((v, i) => (
                     <li key={i}>
-                        {v.setting} : <strong>{v.set_to}</strong>
-                        {v.why && <span className="block text-xs text-stone-600">{v.why}</span>}
+                        {v.setting}
+                        {colon}
+                        <strong className="text-ink-100">{v.set_to}</strong>
+                        {v.why && <span className="block text-xs text-ink-400">{v.why}</span>}
+                    </li>
+                ))}
+            </ul>
+        );
+    }
+    // Other settings shape: [{name, values, why_it_matters}]
+    if (Array.isArray(value) && value.every((v) => v && typeof v === 'object' && 'name' in v)) {
+        return (
+            <ul className="list-disc space-y-1 pl-4">
+                {value.map((v, i) => (
+                    <li key={i}>
+                        {v.name}
+                        {Array.isArray(v.values) && (
+                            <>
+                                {colon}
+                                <strong className="text-ink-100">{v.values.join(', ')}</strong>
+                            </>
+                        )}
+                        {v.why_it_matters && <span className="block text-xs text-ink-400">{v.why_it_matters}</span>}
                     </li>
                 ))}
             </ul>
         );
     }
     if (Array.isArray(value)) return value.map((v) => (typeof v === 'object' ? JSON.stringify(v) : String(v))).join(', ');
-    return <code className="text-xs">{JSON.stringify(value)}</code>;
+    return <code className="break-all text-xs text-ink-300">{JSON.stringify(value)}</code>;
 }
