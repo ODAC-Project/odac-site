@@ -14,7 +14,7 @@ function Panel({ title, children, className = '' }) {
 
 const maxOf = (rows, key) => Math.max(1, ...rows.map((r) => r[key]));
 
-export default function Stats({ totals, by_kind: byKind, by_brand: byBrand, by_family: byFamily, families, by_level: byLevel, contributors, sources }) {
+export default function Stats({ totals, by_kind: byKind, by_brand: byBrand, by_family: byFamily, families, by_level: byLevel, identity, contributors, sources }) {
     const { t, number } = useT();
     const pct = (n) => t('stats.share', { p: totals.devices ? number(Math.round((n / totals.devices) * 100)) : 0 });
 
@@ -41,12 +41,16 @@ export default function Stats({ totals, by_kind: byKind, by_brand: byBrand, by_f
                     {byLevel.map((r) => (
                         <BarRow
                             key={String(r.level)}
-                            label={r.level === null ? t('levels.none') : `${t('levels.badge', { n: r.level })} · ${t(`levels.${r.level}`)}`}
+                            label={r.level === null ? t('levels.none') : r.level === 0 ? t('levels.0') : `${t('levels.badge', { n: r.level })} · ${t(`levels.${r.level}`)}`}
                             value={r.devices}
                             max={totals.devices}
                             hint={pct(r.devices)}
                         />
                     ))}
+                </Panel>
+                <Panel title={t('stats.by_identity')}>
+                    <BarRow label={t('identity.yes')} value={identity.identified} max={totals.devices} hint={pct(identity.identified)} href="/devices?identified=1" />
+                    <BarRow label={t('identity.no')} value={identity.unidentified} max={totals.devices} hint={pct(identity.unidentified)} href="/devices?identified=0" />
                 </Panel>
                 <Panel title={t('stats.by_brand')}>
                     {byBrand.map((r) => (

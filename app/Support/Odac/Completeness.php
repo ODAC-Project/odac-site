@@ -5,22 +5,37 @@
 namespace App\Support\Odac;
 
 /**
- * Completeness levels, computed from `vocabulary/completeness` and nothing
- * else: the same reading as the ODAC verifier (`tools/verifier.py`,
- * `_complet`). A level names a decision the facts allow, never a field count.
+ * Two measures, kept apart on purpose.
  *
+ * IDENTITY (the level-1 gate of `vocabulary/completeness`): an exact USB
+ * identity OR a resolved `device_match`. It says whether a player can
+ * RECOGNISE the device. Without it the record resolves exactly like its
+ * brand's catch-all, however complete its content.
+ *
+ * CONTENT (levels 2 and 3), computed from the vocabulary's field lists and
+ * nothing else, the same reading as the ODAC verifier (`tools/verifier.py`,
+ * `_complet`):
  *  - level 2 (what the device accepts) and level 3 (what it does inside)
  *    are complete when every field of their list is present; `inputs` needs
  *    a non-empty input block;
  *  - level 3 is only reached on top of level 2;
- *  - below level 2, a record with a USB identity or a resolved match is
- *    level 1 (identified); otherwise 0.
+ *  - otherwise 0: the content is below level 2.
  *
- * Without the vocabulary the level is unknown (null), never guessed.
+ * Until 2026-11-26 the two were folded into one number (level 1 meant
+ * "identified, content below 2"), which tested content first: 89 of the 91
+ * records shown at level 2 had no identity at all, and the number hid it.
+ *
+ * Without the vocabulary the content level is unknown (null), never guessed.
+ * Identity does not depend on it.
  */
 final class Completeness
 {
-    /** @param array<int, list<string>> $levels */
+    /**
+     * Content level: 3, 2, or 0 (below level 2). Never 1: identity is
+     * {@see identified()}, a separate measure.
+     *
+     * @param  array<int, list<string>>  $levels
+     */
     public static function level(array $data, array $levels): ?int
     {
         if ($levels === []) {
@@ -30,7 +45,7 @@ final class Completeness
             return isset($levels[3]) && self::complete($data, $levels[3]) ? 3 : 2;
         }
 
-        return self::identified($data) ? 1 : 0;
+        return 0;
     }
 
     /** @param list<string> $fields */
@@ -64,7 +79,7 @@ final class Completeness
         return $missing;
     }
 
-    /** Level 1 gate: an exact USB identity OR a resolved match. */
+    /** The identity gate (level 1 of the vocabulary): an exact USB identity OR a resolved match. */
     public static function identified(array $data): bool
     {
         foreach ((array) ($data['usb'] ?? []) as $usb) {

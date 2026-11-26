@@ -68,7 +68,7 @@
         "about": "What is ODAC?",
         "about_1": "What a DAC really accepts (sample rates, native DSD or DoP, what each input lets through) is scattered today across makers' spec sheets, manuals, forums and measurements. Players and listeners alike often have to guess. ODAC gathers these facts in one place, readable by everyone and by software.",
         "about_2": "Every fact carries its proof: the source that establishes it, quoted and dated. When two sources disagree, both values stay visible with their weight. When nobody knows yet, the question is asked openly instead of leaving an empty cell.",
-        "about_3": "A record grows through completeness levels. Level 1 identifies the device, level 2 says what it accepts, level 3 what it does inside. Each level says what the next contribution would let a player decide.",
+        "about_3": "A record is judged on two separate measures. Identification says whether a player can recognise the device, by its USB identity or by a match established by a person. Completeness says what is known about it: level 2, what it accepts; level 3, what it does inside. Each says what the next contribution would let a player decide.",
         "about_4": "Like Wikipedia or MusicBrainz, ODAC is a commons: the data is licensed CC BY-SA 4.0 and the code Apache 2.0. The project is stewarded by Mozaiklabs together with the community, and stays open to any sourced contribution."
     },
     "kinds": {
@@ -78,11 +78,16 @@
     "levels": {
         "badge": "Level {n}",
         "none": "Level not established",
-        "0": "Not identified",
-        "1": "Identified",
+        "0": "Below level 2",
         "2": "What the device accepts",
         "3": "What it does inside",
         "at_least": "Level {n} and above"
+    },
+    "identity": {
+        "yes": "Identified",
+        "no": "Not identified",
+        "yes_title": "Recognised by an exact USB identity or a sourced match.",
+        "no_title": "Neither a USB identity nor a sourced match: a player cannot recognise this device yet."
     },
     "signals": {
         "contested": "contested",
@@ -108,7 +113,11 @@
         "page_of": "Page {page} of {last}",
         "prev": "Previous",
         "next": "Next",
-        "pagination": "Pagination"
+        "pagination": "Pagination",
+        "identity": "Identification",
+        "all_identity": "Identified or not",
+        "identified_only": "Identified",
+        "unidentified_only": "Not identified"
     },
     "brands": {
         "title": "Brands",
@@ -175,7 +184,9 @@
         "completeness": "Completeness",
         "missing_for": "To reach level {n}, this record still needs:",
         "complete_at": "Complete at level {n}.",
-        "help_level": "An owner of the device or a maker's spec sheet can fill these fields."
+        "help_level": "An owner of the device or a maker's spec sheet can fill these fields.",
+        "identity": "Identification",
+        "missing_identity": "To be recognised by a player, this record needs a USB identity (VID and PID) or a match established by a person, with its proof. Without one, the device behaves like its brand’s generic entry."
     },
     "values": {
         "absent": "absent",
@@ -247,7 +258,8 @@
         "by_family": "By chip family",
         "contributors": "Contributors",
         "sources": "Most cited sources",
-        "share": "{p}%"
+        "share": "{p}%",
+        "by_identity": "By identification"
     },
     "health": {
         "title": "Data health",
@@ -267,7 +279,14 @@
         "doubts": "Devices with an open doubt",
         "unproven": "Devices with at least one fact without proof",
         "range_only": "Proofs that describe the range, not the model",
-        "cta": "Fill a gap"
+        "cta": "Fill a gap",
+        "identified": "Identified",
+        "identified_text": "Recognisable by a player: an exact USB identity or a sourced match. This is a measure of its own, not a level: a record complete at level 2 but not identified behaves like its brand’s generic entry.",
+        "identified_level2": {
+            "one": "of which {n} complete at level 2",
+            "other": "of which {n} complete at level 2"
+        },
+        "see_unidentified": "See the unidentified"
     },
     "compare": {
         "title": "Compare",
@@ -283,7 +302,8 @@
         "differs": "differs",
         "kind": "Type",
         "level": "Level",
-        "not_found": "No device matches."
+        "not_found": "No device matches.",
+        "identity": "Identification"
     },
     "contribute": {
         "title": "Contribute",
@@ -314,8 +334,8 @@
         "a2": "Two sources give different values for the same field. ODAC does not settle it silently: it shows every value with its weight and says which one the build retained.",
         "q3": "And “open doubt”?",
         "a3": "A question asked publicly about the device that nobody has answered with a source yet. That is often where a measurement or an owner of the device moves the record forward.",
-        "q4": "What do the levels mean?",
-        "a4": "Level 1 identifies the device, level 2 says what it accepts (sample rates, DSD, DoP, inputs), level 3 what it does inside (chip family, DSD conversion, level offset). A level measures completeness, not quality: every fact present must carry its proof at every level.",
+        "q4": "What do identification and the levels mean?",
+        "a4": "They are two separate measures. A device is identified when a player can recognise it: by an exact USB identity (VID and PID), or by a match established by a person, with its proof. The levels measure content: level 2 says what it accepts (sample rates, DSD, DoP, inputs), level 3 what it does inside (chip family, DSD conversion, level offset). A record can be complete at level 2 without being identified: it is described, but a player does not yet know it is facing it. Neither measure says anything about quality: every fact present must carry its proof.",
         "q5": "Why “to be measured” rather than an empty cell?",
         "a5": "Because the question has been asked and nobody knows the answer yet. An explicit reason is better than a blank, which could pass for an oversight.",
         "q6": "How does software read ODAC?",

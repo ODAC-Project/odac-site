@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Cache;
  */
 final class CatalogueStats
 {
-    private const VERSION = 'v1';
+    private const VERSION = 'v2';
 
     public function __invoke(?OdacSnapshot $snapshot): array
     {
@@ -47,6 +47,8 @@ final class CatalogueStats
         $brands = [];
         $kinds = [];
         $byLevel = [];
+        $identified = 0;
+        $identifiedLevel2 = 0;
         $byFamily = [];
         $contributors = [];
         $hosts = [];
@@ -63,7 +65,7 @@ final class CatalogueStats
         }
 
         $query = OdacDevice::query()
-            ->select(['brand_slug', 'brand_name', 'kind', 'level', 'is_contested', 'has_open_doubt', 'data'])
+            ->select(['brand_slug', 'brand_name', 'kind', 'level', 'identified', 'is_contested', 'has_open_doubt', 'data'])
             ->whereNull('superseded_by');
         foreach ($query->lazy(100) as $device) {
             $data = $device->data;
@@ -76,6 +78,10 @@ final class CatalogueStats
             $kinds[$device->kind] = ($kinds[$device->kind] ?? 0) + 1;
             $levelKey = $device->level === null ? 'none' : (string) $device->level;
             $byLevel[$levelKey] = ($byLevel[$levelKey] ?? 0) + 1;
+            if ($device->identified) {
+                $identified++;
+                $identifiedLevel2 += ($device->level ?? 0) >= 2 ? 1 : 0;
+            }
             $family = is_string($data['family'] ?? null) ? $data['family'] : null;
             $familyKey = $family ?? '';
             $byFamily[$familyKey] = ($byFamily[$familyKey] ?? 0) + 1;
@@ -145,7 +151,7 @@ final class CatalogueStats
         usort($knownFamilies, fn ($a, $b) => $b['devices'] <=> $a['devices'] ?: strcmp($a['id'], $b['id']));
 
         $levelRows = [];
-        foreach (['3', '2', '1', '0', 'none'] as $key) {
+        foreach (['3', '2', '0', 'none'] as $key) {
             if (isset($byLevel[$key])) {
                 $levelRows[] = ['level' => $key === 'none' ? null : (int) $key, 'devices' => $byLevel[$key]];
             }
@@ -171,6 +177,12 @@ final class CatalogueStats
             ],
             'contributors' => array_map(fn ($k, $n) => ['name' => (string) $k, 'claims' => $n], array_keys($contributors), $contributors),
             'sources' => array_map(fn ($k, $n) => ['host' => (string) $k, 'claims' => $n], array_keys($hosts), $hosts),
+            // Identity is not a level: it does not need the vocabulary.
+            'identity' => [
+                'identified' => $identified,
+                'unidentified' => $devices - $identified,
+                'identified_level2' => $identifiedLevel2,
+            ],
             'health' => [
                 'contested' => $contested,
                 'open_doubts' => $doubts,

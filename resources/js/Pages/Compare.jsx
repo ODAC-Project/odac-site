@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import FieldName from '../Components/FieldName';
 import Icon from '../Components/Icon';
 import Layout from '../Components/Layout';
-import { Badge, Card, Empty, KindBadge, LevelBadge, PageHeader, SearchField } from '../Components/ui';
+import { Badge, Card, Empty, IdentityBadge, KindBadge, LevelBadge, PageHeader, SearchField } from '../Components/ui';
 import Value from '../Components/Value';
 import { useT } from '../i18n';
 
@@ -54,6 +54,7 @@ export default function Compare({ sheets, options, max, family_names: familyName
     const shown = onlyDiff ? rows.filter((r) => r.differs) : rows;
     const kindsDiffer = new Set(sheets.map((s) => s.identity.kind)).size > 1;
     const levelsDiffer = new Set(sheets.map((s) => s.identity.level)).size > 1;
+    const identityDiffers = new Set(sheets.map((s) => s.identity.identified)).size > 1;
     const cell = (differs) => (differs ? 'bg-amber-400/[0.07]' : '');
 
     return (
@@ -136,6 +137,18 @@ export default function Compare({ sheets, options, max, family_names: familyName
                                             {sheets.map((s) => (
                                                 <td key={s.identity.odac_id} className={`px-4 py-3 ${cell(kindsDiffer)}`}>
                                                     <KindBadge kind={s.identity.kind} />
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    )}
+                                    {(!onlyDiff || identityDiffers) && (
+                                        <tr>
+                                            <th scope="row" className="sticky left-0 bg-ink-850 px-4 py-3 font-normal text-ink-300">
+                                                {t('compare.identity')}
+                                            </th>
+                                            {sheets.map((s) => (
+                                                <td key={s.identity.odac_id} className={`px-4 py-3 ${cell(identityDiffers)}`}>
+                                                    <IdentityBadge identified={s.identity.identified} />
                                                 </td>
                                             ))}
                                         </tr>

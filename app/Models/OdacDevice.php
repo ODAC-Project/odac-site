@@ -15,7 +15,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $brand_name
  * @property string $model_name
  * @property string $kind
- * @property ?int $level
+ * @property ?int $level content level: 3, 2 or 0 (below 2)
+ * @property bool $identified USB identity or resolved match
  * @property bool $is_contested
  * @property bool $has_open_doubt
  * @property ?string $superseded_by
@@ -31,6 +32,7 @@ class OdacDevice extends Model
     {
         return [
             'level' => 'integer',
+            'identified' => 'boolean',
             'is_contested' => 'boolean',
             'has_open_doubt' => 'boolean',
             'data' => 'array',

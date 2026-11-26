@@ -17,7 +17,7 @@ function Ring({ value, total }) {
     );
 }
 
-export default function Health({ totals, levels, health }) {
+export default function Health({ totals, levels, identity, health }) {
     const { t, number } = useT();
     const worst = Math.max(1, ...health.missing.map((m) => m.missing));
 
@@ -31,6 +31,23 @@ export default function Health({ totals, levels, health }) {
     return (
         <Layout title={t('health.title')} wide>
             <PageHeader title={t('health.title')} intro={t('health.intro')} />
+
+            <Card className="mb-4 flex items-center gap-5 p-5">
+                <Ring value={identity.identified} total={totals.devices} />
+                <div className="min-w-0">
+                    <p className="text-sm text-ink-400">{t('health.identified')}</p>
+                    <p className="text-3xl font-semibold tabular-nums text-ink-100">
+                        {number(identity.identified)} <span className="text-sm font-normal text-ink-400">{t('health.of_total', { total: number(totals.devices) })}</span>
+                    </p>
+                    {levels.known && <p className="text-xs text-ink-300">{t('health.identified_level2', { n: identity.identified_level2 })}</p>}
+                    <p className="mt-1 max-w-3xl text-xs text-ink-400">{t('health.identified_text')}</p>
+                    {identity.unidentified > 0 && (
+                        <Link href="/devices?identified=0" className="mt-1 inline-block text-xs text-accent-300 underline">
+                            {t('health.see_unidentified')}
+                        </Link>
+                    )}
+                </div>
+            </Card>
 
             {!levels.known ? (
                 <p className="mb-6 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">{t('health.no_levels')}</p>

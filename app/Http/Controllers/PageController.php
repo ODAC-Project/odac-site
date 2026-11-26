@@ -75,6 +75,7 @@ class PageController extends Controller
                 'by_family' => $stats['by_family'],
                 'families' => collect($stats['families'])->pluck('name', 'id'),
                 'by_level' => $stats['by_level'],
+                'identity' => $stats['identity'],
                 'contributors' => $stats['contributors'],
                 'sources' => array_slice($stats['sources'], 0, 15),
             ]);
@@ -89,6 +90,7 @@ class PageController extends Controller
             return Inertia::render('Health', [
                 'totals' => $stats['totals'],
                 'levels' => $stats['levels'],
+                'identity' => $stats['identity'],
                 'by_level' => $stats['by_level'],
                 'health' => $stats['health'],
             ]);

@@ -68,7 +68,7 @@
         "about": "Qu’est-ce qu’ODAC ?",
         "about_1": "Ce qu’un DAC accepte réellement (fréquences, DSD natif ou DoP, ce que chaque entrée laisse passer) se trouve aujourd’hui éparpillé entre des fiches de fabricants, des manuels, des forums et des mesures. Les lecteurs comme les auditeurs doivent souvent deviner. ODAC rassemble ces faits en un seul endroit, lisible par tout le monde et par les logiciels.",
         "about_2": "Chaque fait porte sa preuve : la source qui l’établit, citée et datée. Quand deux sources se contredisent, les deux valeurs restent visibles avec leur poids. Quand personne ne sait encore, la question est posée en clair au lieu d’une case vide.",
-        "about_3": "Une fiche progresse par niveaux de complétude. Le niveau 1 identifie l’appareil, le niveau 2 dit ce qu’il accepte, le niveau 3 ce qu’il fait à l’intérieur. Chaque niveau dit ce que la contribution suivante permettrait de décider.",
+        "about_3": "Une fiche se juge sur deux mesures distinctes. L’identification dit si un lecteur peut reconnaître l’appareil, par son identité USB ou par une correspondance établie par une personne. La complétude dit ce qu’on en sait : le niveau 2, ce qu’il accepte, le niveau 3, ce qu’il fait à l’intérieur. Chacune dit ce que la contribution suivante permettrait de décider.",
         "about_4": "Comme Wikipédia ou MusicBrainz, ODAC est un bien commun : les données sont sous licence CC BY-SA 4.0 et le code sous Apache 2.0. Le projet est porté par Mozaiklabs, avec la communauté, et reste ouvert à toute contribution sourcée."
     },
     "kinds": {
@@ -78,11 +78,16 @@
     "levels": {
         "badge": "Niveau {n}",
         "none": "Niveau non établi",
-        "0": "Non identifié",
-        "1": "Identifié",
+        "0": "Sous le niveau 2",
         "2": "Ce que l’appareil accepte",
         "3": "Ce qu’il fait à l’intérieur",
         "at_least": "Niveau {n} et plus"
+    },
+    "identity": {
+        "yes": "Identifié",
+        "no": "Non identifié",
+        "yes_title": "Reconnu par une identité USB exacte ou une correspondance sourcée.",
+        "no_title": "Ni identité USB ni correspondance sourcée : un lecteur ne sait pas encore reconnaître cet appareil."
     },
     "signals": {
         "contested": "contesté",
@@ -108,7 +113,11 @@
         "page_of": "Page {page} sur {last}",
         "prev": "Précédente",
         "next": "Suivante",
-        "pagination": "Pagination"
+        "pagination": "Pagination",
+        "identity": "Identification",
+        "all_identity": "Identifiés ou non",
+        "identified_only": "Identifiés",
+        "unidentified_only": "Non identifiés"
     },
     "brands": {
         "title": "Marques",
@@ -175,7 +184,9 @@
         "completeness": "Complétude",
         "missing_for": "Pour atteindre le niveau {n}, il manque :",
         "complete_at": "Complet au niveau {n}.",
-        "help_level": "Un porteur de l’appareil ou une fiche du fabricant peut combler ces champs."
+        "help_level": "Un porteur de l’appareil ou une fiche du fabricant peut combler ces champs.",
+        "identity": "Identification",
+        "missing_identity": "Pour être reconnu par un lecteur, il manque une identité USB (VID et PID) ou une correspondance établie par une personne, avec sa preuve. Sans elle, l’appareil se comporte comme le générique de sa marque."
     },
     "values": {
         "absent": "absent",
@@ -247,7 +258,8 @@
         "by_family": "Par famille de puce",
         "contributors": "Contributeurs",
         "sources": "Sources les plus citées",
-        "share": "{p} %"
+        "share": "{p} %",
+        "by_identity": "Par identification"
     },
     "health": {
         "title": "Santé des données",
@@ -267,7 +279,14 @@
         "doubts": "Appareils avec un doute ouvert",
         "unproven": "Appareils avec au moins un fait sans preuve",
         "range_only": "Preuves qui décrivent la gamme, pas le modèle",
-        "cta": "Combler un manque"
+        "cta": "Combler un manque",
+        "identified": "Identifiés",
+        "identified_text": "Reconnaissables par un lecteur : une identité USB exacte ou une correspondance sourcée. C’est une mesure à part, pas un niveau : une fiche complète au niveau 2 mais non identifiée se comporte comme le générique de sa marque.",
+        "identified_level2": {
+            "one": "dont {n} complet au niveau 2",
+            "other": "dont {n} complets au niveau 2"
+        },
+        "see_unidentified": "Voir les non identifiés"
     },
     "compare": {
         "title": "Comparer",
@@ -283,7 +302,8 @@
         "differs": "écart",
         "kind": "Type",
         "level": "Niveau",
-        "not_found": "Aucun appareil ne correspond."
+        "not_found": "Aucun appareil ne correspond.",
+        "identity": "Identification"
     },
     "contribute": {
         "title": "Contribuer",
@@ -314,8 +334,8 @@
         "a2": "Deux sources donnent des valeurs différentes pour le même champ. ODAC ne tranche pas en silence : il montre toutes les valeurs avec leur poids et indique celle que la construction a retenue.",
         "q3": "Et « doute ouvert » ?",
         "a3": "Une question posée publiquement sur l’appareil, à laquelle personne n’a encore répondu avec une source. C’est souvent là qu’une mesure ou un porteur de l’appareil fait avancer la fiche.",
-        "q4": "Que signifient les niveaux ?",
-        "a4": "Le niveau 1 identifie l’appareil, le niveau 2 dit ce qu’il accepte (fréquences, DSD, DoP, entrées), le niveau 3 ce qu’il fait à l’intérieur (famille de puce, conversion DSD, écart de niveau). Un niveau mesure la complétude, pas la qualité : chaque fait présent doit avoir sa preuve à tous les niveaux.",
+        "q4": "Que signifient l’identification et les niveaux ?",
+        "a4": "Ce sont deux mesures distinctes. Un appareil est identifié quand un lecteur peut le reconnaître : par une identité USB exacte (VID et PID), ou par une correspondance établie par une personne, avec sa preuve. Les niveaux mesurent le contenu : le niveau 2 dit ce qu’il accepte (fréquences, DSD, DoP, entrées), le niveau 3 ce qu’il fait à l’intérieur (famille de puce, conversion DSD, écart de niveau). Une fiche peut être complète au niveau 2 sans être identifiée : elle est décrite, mais un lecteur ne sait pas encore qu’il l’a en face de lui. Aucune de ces mesures ne dit la qualité : chaque fait présent doit avoir sa preuve.",
         "q5": "Pourquoi « à mesurer » plutôt qu’une case vide ?",
         "a5": "Parce que la question a été posée et que personne ne connaît encore la réponse. Une raison explicite vaut mieux qu’un vide, qui pourrait passer pour un oubli.",
         "q6": "Comment un logiciel lit-il ODAC ?",

@@ -61,6 +61,21 @@ export function LevelBadge({ level, long = false }) {
     );
 }
 
+/**
+ * Identity is a measure of its own, not a level: whether a player can
+ * recognise the device (USB identity or sourced match).
+ */
+export function IdentityBadge({ identified }) {
+    const { t } = useT();
+    return identified ? (
+        <Badge tone="accent" title={t('identity.yes_title')}>
+            {t('identity.yes')}
+        </Badge>
+    ) : (
+        <Badge title={t('identity.no_title')}>{t('identity.no')}</Badge>
+    );
+}
+
 export function Signals({ contested, doubt }) {
     const { t } = useT();
     return (

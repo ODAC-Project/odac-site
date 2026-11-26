@@ -18,6 +18,31 @@ it('computes the completeness level from the vocabulary, not from a stored figur
         ->and($levels['banc-essai/modele-a2'])->toBe(0);
 });
 
+it('keeps identity apart from the content level', function () {
+    $lines = odac_demo_jsonl()
+        // Every level-2 field, no identity: complete, yet unrecognisable.
+        .odac_device_line('serie/decrit', ['pcm_max_hz' => 384000, 'dsd_max' => 256, 'native_dsd' => true, 'dop' => true, 'inputs' => ['usb' => ['pcm_max_hz' => 384000]]])."\n"
+        // A sourced match and nothing else: recognisable, content below 2.
+        .odac_device_line('serie/reconnu', ['device_match' => ['subject' => 'serie/reconnu', 'level' => 1]])."\n";
+    odac_publish($this->dist['dir'], $lines, '2026.11.27');
+    $this->artisan('odac:ingest', ['--source' => $this->dist['dir']])->assertSuccessful();
+
+    $rows = \App\Models\OdacDevice::query()->get()->keyBy('odac_id');
+    expect($rows['serie/decrit']->level)->toBe(2)
+        ->and($rows['serie/decrit']->identified)->toBeFalse()
+        ->and($rows['serie/reconnu']->level)->toBe(0)
+        ->and($rows['serie/reconnu']->identified)->toBeTrue()
+        ->and($rows['atelier-demo/convertisseur-un']->identified)->toBeTrue()
+        // Level 1 no longer exists as a level: it is the identity column.
+        ->and($rows->where('level', 1)->count())->toBe(0);
+
+    $this->get('/health')->assertInertia(fn (Assert $page) => $page
+        ->where('identity.identified', 2)
+        ->where('identity.unidentified', 3)
+        ->where('identity.identified_level2', 1)
+        ->where('levels.level2', 2));
+});
+
 it('leaves the level unknown when the artifact has no completeness vocabulary', function () {
     $lines = preg_replace('/^.*"id":"completeness".*\n/m', '', odac_demo_jsonl());
     odac_publish($this->dist['dir'], $lines, '2026.11.27');
@@ -70,6 +95,7 @@ it('breaks the registry down by type, level, brand and family', function () {
         ->component('Stats')
         ->where('by_kind', [['kind' => 'dac', 'devices' => 2], ['kind' => 'network_player', 'devices' => 1]])
         ->where('by_level', [['level' => 2, 'devices' => 1], ['level' => 0, 'devices' => 2]])
+        ->where('identity', ['identified' => 1, 'unidentified' => 2, 'identified_level2' => 1])
         ->where('by_brand.0.slug', 'atelier-demo')
         ->where('families.delta_sigma_generic', 'Delta-sigma (générique)'));
 });
@@ -80,6 +106,7 @@ it('shows data health: levels 2 and 3, what is missing most, and the signals', f
         ->where('levels.known', true)
         ->where('levels.level2', 1)
         ->where('levels.level3', 0)
+        ->where('identity', ['identified' => 1, 'unidentified' => 2, 'identified_level2' => 1])
         ->where('health.contested', 1)
         ->where('health.open_doubts', 1)
         // native_dsd and dop are written without evidence on convertisseur-un.

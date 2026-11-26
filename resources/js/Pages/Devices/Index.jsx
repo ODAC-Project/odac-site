@@ -3,7 +3,7 @@ import { Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import Icon from '../../Components/Icon';
 import Layout from '../../Components/Layout';
-import { Badge, Empty, KindBadge, LevelBadge, PageHeader, SearchField, Signals } from '../../Components/ui';
+import { Badge, Empty, IdentityBadge, KindBadge, LevelBadge, PageHeader, SearchField, Signals } from '../../Components/ui';
 import { useT } from '../../i18n';
 
 const KINDS = ['dac', 'network_player'];
@@ -80,11 +80,19 @@ export default function Index({ devices, filters, brands }) {
                         <span className="sr-only">{t('devices.level')}</span>
                         <select className={SELECT} value={filters.level} onChange={(e) => apply({ level: e.target.value })}>
                             <option value="">{t('devices.all_levels')}</option>
-                            {['1', '2', '3'].map((n) => (
+                            {['2', '3'].map((n) => (
                                 <option key={n} value={n}>
                                     {t('levels.at_least', { n })}
                                 </option>
                             ))}
+                        </select>
+                    </label>
+                    <label>
+                        <span className="sr-only">{t('devices.identity')}</span>
+                        <select className={SELECT} value={filters.identified} onChange={(e) => apply({ identified: e.target.value })}>
+                            <option value="">{t('devices.all_identity')}</option>
+                            <option value="1">{t('devices.identified_only')}</option>
+                            <option value="0">{t('devices.unidentified_only')}</option>
                         </select>
                     </label>
                     <Toggle checked={filters.contested} onChange={(v) => apply({ contested: v ? 1 : '' })}>
@@ -127,6 +135,8 @@ export default function Index({ devices, filters, brands }) {
                                 <span className="mt-0.5 font-medium text-ink-100 group-hover:text-accent-300">{d.model_name}</span>
                                 <span className="mt-3 flex flex-wrap gap-1.5">
                                     <KindBadge kind={d.kind} />
+                                    {/* Only the exception is marked: almost every record is still unidentified. */}
+                                    {d.identified && <IdentityBadge identified />}
                                     <LevelBadge level={d.level} />
                                     <Signals contested={d.is_contested} doubt={d.has_open_doubt} />
                                 </span>

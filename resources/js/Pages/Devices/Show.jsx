@@ -2,7 +2,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import Icon from '../../Components/Icon';
 import Layout from '../../Components/Layout';
-import { Badge, Card, CardTitle, KindBadge, LevelBadge } from '../../Components/ui';
+import { Badge, Card, CardTitle, IdentityBadge, KindBadge, LevelBadge } from '../../Components/ui';
 import FieldName from '../../Components/FieldName';
 import Value from '../../Components/Value';
 import { useT } from '../../i18n';
@@ -105,6 +105,7 @@ export default function Show({ sheet, family_names: familyNames, completeness })
                         <h1 className="mt-0.5 text-2xl font-semibold tracking-tight text-ink-100 sm:text-3xl">{identity.model}</h1>
                         <div className="mt-3 flex flex-wrap gap-1.5">
                             <KindBadge kind={identity.kind} />
+                            <IdentityBadge identified={identity.identified} />
                             <LevelBadge level={identity.level} long />
                             {summary.some((r) => r.contested) && <Badge tone="rose">{t('signals.contested')}</Badge>}
                             {doubt && <Badge tone="amber">{t('signals.doubt')}</Badge>}
@@ -181,21 +182,26 @@ export default function Show({ sheet, family_names: familyNames, completeness })
                 </section>
             )}
 
-            {nextLevel && (
+            {(nextLevel || !identity.identified) && (
                 <Card className="mt-4 p-4 sm:p-5">
                     <CardTitle as="h2" className="text-sm">
                         {t('sheet.completeness')}
                     </CardTitle>
-                    <p className="mt-1 text-sm text-ink-300">{t('sheet.missing_for', { n: nextLevel.n })}</p>
-                    <ul className="mt-2 flex flex-wrap gap-1.5">
-                        {nextLevel.missing.map((f) => (
-                            <li key={f}>
-                                <Badge tone="amber">
-                                    <code>{f}</code>
-                                </Badge>
-                            </li>
-                        ))}
-                    </ul>
+                    {!identity.identified && <p className="mt-1 text-sm text-ink-300">{t('sheet.missing_identity')}</p>}
+                    {nextLevel && (
+                        <>
+                            <p className="mt-2 text-sm text-ink-300">{t('sheet.missing_for', { n: nextLevel.n })}</p>
+                            <ul className="mt-2 flex flex-wrap gap-1.5">
+                                {nextLevel.missing.map((f) => (
+                                    <li key={f}>
+                                        <Badge tone="amber">
+                                            <code>{f}</code>
+                                        </Badge>
+                                    </li>
+                                ))}
+                            </ul>
+                        </>
+                    )}
                     <p className="mt-2 text-xs text-ink-400">
                         {t('sheet.help_level')}{' '}
                         <a href={contributeHref} className="text-accent-300 underline">

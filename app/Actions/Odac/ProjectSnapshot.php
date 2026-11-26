@@ -100,6 +100,7 @@ final class ProjectSnapshot
             'model_name' => Str::limit($modelName, 190, ''),
             'kind' => (string) $data['kind'],
             'level' => is_int($level) && $level >= 0 && $level <= 3 ? $level : null,
+            'identified' => Completeness::identified($data),
             'is_contested' => ! empty($data['contested']),
             'has_open_doubt' => ! empty($data['open_doubt']),
             'superseded_by' => is_string($data['superseded_by'] ?? null)

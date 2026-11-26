@@ -46,6 +46,10 @@ it('filters by search (name and alias), brand, kind, contested and doubt', funct
     'open doubt' => [['doubt' => 1], ['atelier-demo/convertisseur-un']],
     'level 2 and above' => [['level' => 2], ['atelier-demo/convertisseur-un']],
     'level 3 and above' => [['level' => 3], []],
+    'identified' => [['identified' => 1], ['atelier-demo/convertisseur-un']],
+    'not identified' => [['identified' => 0], ['atelier-demo/lecteur-reseau', 'banc-essai/modele-a2']],
+    // `level=1` meant "identified" before identity was split from the level.
+    'old level 1 address' => [['level' => 1], ['atelier-demo/convertisseur-un']],
     'chip family' => [['family' => 'delta_sigma_generic'], ['atelier-demo/convertisseur-un']],
 ]);
 

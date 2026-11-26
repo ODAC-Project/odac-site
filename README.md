@@ -57,19 +57,27 @@ est l'empreinte qu'il détient, plus la projection lisible de cet instantané.
 | route | page |
 |---|---|
 | `GET /` | accueil : recherche, aperçu de la base, contributeurs et sources les plus cités |
-| `GET /devices` | la liste (anciennement `/?q=…`, qui répond désormais un 301 vers `/devices?q=…`) ; filtres `q`, `brand`, `kind`, `level` (au moins), `family`, `contested`, `doubt` |
+| `GET /devices` | la liste (anciennement `/?q=…`, qui répond désormais un 301 vers `/devices?q=…`) ; filtres `q`, `brand`, `kind`, `level` (au moins, 2 ou 3), `identified` (1 ou 0), `family`, `contested`, `doubt` ; l'ancien `level=1` se lit `identified=1` |
 | `GET /brands`, `/chips` | marques et familles de puces, avec leurs comptes |
-| `GET /stats` | répartition par type, niveau, marque, famille ; contributeurs et sources |
-| `GET /health` | complétude niveaux 2 et 3, champs les moins renseignés, signaux |
+| `GET /stats` | répartition par type, niveau, identification, marque, famille ; contributeurs et sources |
+| `GET /health` | identification, complétude niveaux 2 et 3, champs les moins renseignés, signaux |
 | `GET /compare?d[]=<id>&d[]=<id>` | 2 à 4 appareils côte à côte, écarts mis en évidence |
 | `GET /contribute`, `/help` | comment contribuer (PR GitHub + DCO), FAQ |
 
-- **Niveau de complétude** : calculé à l'ingestion à partir de
-  `vocabulary/completeness` (même lecture que `tools/verifier.py`) et rangé dans
-  la colonne `level` de la projection. Niveau 2 ou 3 si la liste de champs est
-  complète (le 3 sur le 2), sinon 1 avec une identité USB ou une
-  `device_match`, sinon 0. Sans vocabulaire : inconnu. Sur l'artefact du
-  2026-11-25 : 91 appareils au niveau 2, 0 au niveau 3.
+- **Deux mesures séparées**, calculées à l'ingestion :
+  - **identification** (colonne `identified`) : une identité USB exacte
+    (VID et PID) **ou** une `device_match`. C'est la porte du niveau 1 de
+    `vocabulary/completeness`. Elle dit si un lecteur peut *reconnaître*
+    l'appareil, et ne dépend pas du vocabulaire ;
+  - **niveau de contenu** (colonne `level`) : 2 ou 3 si la liste de champs
+    est complète (le 3 sur le 2), sinon 0 (« sous le niveau 2 »). Le niveau 1
+    n'existe plus comme niveau. Sans vocabulaire : inconnu.
+
+  Jusqu'au 2026-11-26, les deux mesures tenaient en un seul chiffre, et le
+  contenu était testé d'abord. Sur l'artefact du 2026-11-25, **89 des 91
+  fiches** affichées au niveau 2 n'avaient aucune identité : décrites, mais
+  qu'aucun lecteur ne pouvait reconnaître. Sur 373 appareils, **3 sont
+  identifiés** (USB), aucun par `device_match`.
 - **Chiffres** : calculés une fois par empreinte (`CatalogueStats`, cache de
   l'application), depuis la projection et l'artefact local. Aucun appel réseau.
 - **Langues** : `?lang=fr|en`, puis le cookie de préférence `odac_lang` (posé
@@ -241,6 +249,16 @@ server {
 
 ### 5. Vérifier après chaque déploiement
 
+Quand un déploiement apporte une migration qui change la projection (par
+exemple la colonne `identified`, le 2026-11-26), il faut reprojeter sans
+attendre une nouvelle empreinte. Sinon, la colonne garde sa valeur par défaut
+jusqu'au prochain artefact :
+
+```bash
+docker compose exec odac-app php artisan migrate --force
+docker compose exec odac-app php artisan odac:ingest --force
+```
+
 Cette commande mesure les octets réellement envoyés et vérifie le 304 et le cache :
 
 ```bash
@@ -260,5 +278,5 @@ repose au-delà de 1 Mo compressé.**
    `/latest.json` et `/artifacts/<nom>`. Une fois l'adresse choisie, il faudra
    l'écrire dans `CONSUMING.md`. Le même texte promet aussi un miroir « derrière un
    CDN », alors que la décision actuelle est un VPS sans CDN.
-3. **Niveau de complétude** : calculé depuis `vocabulary/completeness`. Le
-   niveau 1 (identité USB ou `device_match`) n'est compté qu'en dessous du 2.
+3. **Niveau de complétude** : tranché le 2026-11-26. L'identification est une
+   mesure à part, pas un niveau (voir plus haut).

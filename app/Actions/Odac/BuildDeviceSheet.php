@@ -88,6 +88,7 @@ final class BuildDeviceSheet
                 'model' => $device->model_name,
                 'kind' => $device->kind,
                 'level' => $device->level,
+                'identified' => $device->identified,
                 'aliases' => ProjectSnapshot::aliases($data),
                 'usb_ids' => array_values(array_filter((array) ($data['usb'] ?? []), 'is_array')),
             ],
