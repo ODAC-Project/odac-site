@@ -138,6 +138,13 @@ class PageController extends Controller
         return $this->snapshotPage($request, fn () => Inertia::render('Help'));
     }
 
+    public function why(Request $request): Response
+    {
+        return $this->snapshotPage($request, fn () => Inertia::render('Why', [
+            'figures' => $this->figures(),
+        ]));
+    }
+
     private function figures(): array
     {
         return ($this->stats)(OdacSnapshot::current());

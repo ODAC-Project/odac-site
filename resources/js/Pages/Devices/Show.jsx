@@ -5,10 +5,9 @@ import Layout from '../../Components/Layout';
 import { Badge, Card, CardTitle, IdentityBadge, KindBadge, LevelBadge } from '../../Components/ui';
 import FieldName from '../../Components/FieldName';
 import Value from '../../Components/Value';
+import SignalPath, { proposeHref } from '../../Components/SignalPath';
+import LevelLadder from '../../Components/LevelLadder';
 import { useT } from '../../i18n';
-
-// The facts a reader looks for first, when the record carries them.
-const KEY_FACTS = ['pcm_max_hz', 'dsd_max', 'native_dsd', 'dop', 'bits', 'chip', 'family', 'technology'];
 
 /**
  * A `quote` field is the contributor's account of the page: only the runs
@@ -98,21 +97,9 @@ export default function Show({ sheet, family_names: familyNames, completeness })
     const { t, date } = useT();
     const { identity, proofs, summary, open_doubt: doubt } = sheet;
     const rows = Object.fromEntries(summary.map((r) => [r.field, r]));
-    // A key fact is short; a long text (a chip described in a sentence) stays in the summary.
-    const keyFacts = KEY_FACTS.filter(
-        (f) => rows[f] && (rows[f].contested || (rows[f].value !== null && !(typeof rows[f].value === 'string' && rows[f].value.length > 40))),
-    );
     const contributeHref = app.contribute_url ?? '/contribute';
     const proofNumbers = Object.fromEntries(proofs.filter((p) => p.claim).map((p) => [p.claim, p.number]));
     const proofOf = (claim) => (claim && proofNumbers[claim] !== undefined ? proofNumbers[claim] : null);
-
-    const nextLevel =
-        completeness &&
-        (completeness.level2_missing.length > 0
-            ? { n: 2, missing: completeness.level2_missing }
-            : completeness.level3_missing.length > 0
-              ? { n: 3, missing: completeness.level3_missing }
-              : null);
 
     return (
         <Layout title={`${identity.brand} ${identity.model}`}>
@@ -194,53 +181,43 @@ export default function Show({ sheet, family_names: familyNames, completeness })
                 </section>
             )}
 
-            {keyFacts.length > 0 && (
-                <section className="mt-4">
-                    <h2 className="sr-only">{t('sheet.key_facts')}</h2>
-                    <dl className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                        {keyFacts.map((f) => (
-                            <div key={f} className="rounded-xl border border-ink-700/60 bg-ink-850 p-4">
-                                <dt className="text-xs text-ink-400">{t(`fields.${f}`)}</dt>
-                                <dd className="mt-1 break-words text-base font-semibold text-ink-100">
-                                    {rows[f].contested ? <Badge tone="rose">{t('signals.contested')}</Badge> : <Value field={f} value={rows[f].value} familyNames={familyNames} />}
-                                </dd>
-                            </div>
-                        ))}
-                    </dl>
-                </section>
-            )}
+            <Card className="mt-4 p-5 sm:p-6">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <CardTitle as="h2">{t('path.title')}</CardTitle>
+                    <Link href="/pourquoi" className="text-xs text-accent-300 underline">
+                        {t('path.why_link')}
+                    </Link>
+                </div>
+                <p className="mt-1 text-sm text-ink-400">{t('path.intro')}</p>
+                <div className="mt-4">
+                    <SignalPath rows={rows} odacId={identity.odac_id} familyNames={familyNames} />
+                </div>
+            </Card>
 
-            {(nextLevel || !identity.identified) && (
-                <Card className="mt-4 p-4 sm:p-5">
-                    <CardTitle as="h2" className="text-sm">
-                        {t('sheet.completeness')}
-                    </CardTitle>
-                    {!identity.identified && <p className="mt-1 text-sm text-ink-300">{t('sheet.missing_identity')}</p>}
-                    {nextLevel && (
-                        <>
-                            <p className="mt-2 text-sm text-ink-300">{t('sheet.missing_for', { n: nextLevel.n })}</p>
-                            <ul className="mt-2 flex flex-wrap gap-1.5">
-                                {nextLevel.missing.map((f) => (
-                                    <li key={f}>
-                                        <Badge tone="amber">
-                                            <code>{f}</code>
-                                        </Badge>
-                                    </li>
-                                ))}
-                            </ul>
-                        </>
-                    )}
-                    <p className="mt-2 text-xs text-ink-400">
-                        {t('sheet.help_level')}{' '}
-                        <a href={contributeHref} className="text-accent-300 underline">
-                            {t('nav.contribute')}
-                        </a>
-                    </p>
-                </Card>
-            )}
+            <section className="mt-4">
+                <h2 className="mb-3 flex flex-wrap items-baseline gap-x-3 text-lg font-semibold text-ink-100">
+                    {t('ladder.title')}
+                    <Link href="/pourquoi" className="text-xs font-normal text-accent-300 underline">
+                        {t('ladder.what_for')}
+                    </Link>
+                </h2>
+                <LevelLadder identity={identity} completeness={completeness} />
+            </section>
+
+            <Card className="mt-4 flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
+                <p className="text-sm text-ink-300">{t('sheet.propose_intro')}</p>
+                <div className="flex flex-wrap gap-2">
+                    <Link href={proposeHref(identity.odac_id, null, 'change')} className="rounded-lg bg-accent-400 px-3 py-2 text-sm font-semibold text-ink-950 hover:bg-accent-300">
+                        {t('sheet.propose_change')}
+                    </Link>
+                    <Link href={proposeHref(identity.odac_id, null, 'comment')} className="rounded-lg border border-ink-600 px-3 py-2 text-sm text-ink-200 hover:border-accent-400/60 hover:text-accent-300">
+                        {t('sheet.propose_comment')}
+                    </Link>
+                </div>
+            </Card>
 
             <Card className="mt-6 overflow-hidden">
-                <CardTitle className="border-b border-ink-700/60 px-5 py-4">{t('sheet.summary')}</CardTitle>
+                <CardTitle className="border-b border-ink-700/60 px-5 py-4">{t('sheet.summary_all')}</CardTitle>
                 {/* A grid, not a table: on a phone each row stacks instead of scrolling sideways. */}
                 <div className="hidden grid-cols-[minmax(0,2fr)_minmax(0,3fr)_6rem] bg-ink-800/60 px-5 py-2 text-xs font-medium uppercase tracking-wide text-ink-400 sm:grid" aria-hidden="true">
                     <span>{t('sheet.field')}</span>
@@ -249,7 +226,7 @@ export default function Show({ sheet, family_names: familyNames, completeness })
                 </div>
                 <dl className="divide-y divide-ink-700/50 text-sm">
                     {summary.map((row) => (
-                        <div key={row.field} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1.5 px-5 py-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)_6rem]">
+                        <div key={row.field} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1.5 px-5 py-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)_9rem]">
                             <dt className="min-w-0">
                                 <FieldName code={row.field} />
                             </dt>
@@ -264,6 +241,9 @@ export default function Show({ sheet, family_names: familyNames, completeness })
                                 ) : (
                                     !row.contested && <span className="text-rose-300">{t('sheet.no_proof')}</span>
                                 )}
+                                <Link href={proposeHref(identity.odac_id, row.field)} className="ml-2 text-xs text-ink-500 hover:text-accent-300" title={t('sheet.correct_this')}>
+                                    {t('sheet.correct')}
+                                </Link>
                             </dd>
                         </div>
                     ))}

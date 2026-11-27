@@ -6,6 +6,7 @@ import Icon from './Icon';
 
 const NAV = [
     { key: 'home', href: '/', icon: 'home' },
+    { key: 'why', href: '/pourquoi', icon: 'help' },
     { key: 'brands', href: '/brands', icon: 'brands' },
     { key: 'devices', href: '/devices', icon: 'devices' },
     { key: 'chips', href: '/chips', icon: 'chips' },
@@ -13,6 +14,7 @@ const NAV = [
     { key: 'stats', href: '/stats', icon: 'stats' },
     { key: 'health', href: '/health', icon: 'health' },
     { key: 'contribute', href: '/contribute', icon: 'contribute' },
+    { key: 'propose', href: '/proposer', icon: 'plus' },
     { key: 'help', href: '/help', icon: 'help' },
 ];
 

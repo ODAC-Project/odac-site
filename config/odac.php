@@ -57,4 +57,25 @@ return [
     // Where the "contribuer" button leads (v1: the contribution flow lives on
     // mozaiklabs.fr). Empty: the button is not shown.
     'contribute_url' => env('ODAC_CONTRIBUTE_URL', ''),
+
+    /*
+    | Sign-in with a Mozaik Labs account, for free-text proposals. mozaiklabs.fr
+    | signs a short-lived token with the shared secret (see MozaikToken). An
+    | empty secret switches the sign-in off: the proposal page then offers
+    | GitHub only.
+    */
+    'mozaik' => [
+        'connect_url' => env('ODAC_MOZAIK_CONNECT_URL', 'https://mozaiklabs.fr/odac/connect'),
+        'secret' => env('ODAC_MOZAIK_SECRET', ''),
+    ],
+
+    /*
+    | Where proposals go. With a token (fine-grained, Issues: read and write on
+    | the BDD only), each proposal becomes an issue there; without one they stay
+    | in the database for a curator (php artisan odac:proposals).
+    */
+    'proposals' => [
+        'github_token' => env('ODAC_GITHUB_TOKEN', ''),
+        'github_repo' => env('ODAC_GITHUB_REPO', 'ODAC-Project/ODAC'),
+    ],
 ];
