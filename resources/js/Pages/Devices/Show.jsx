@@ -10,9 +10,32 @@ import { useT } from '../../i18n';
 // The facts a reader looks for first, when the record carries them.
 const KEY_FACTS = ['pcm_max_hz', 'dsd_max', 'native_dsd', 'dop', 'bits', 'chip', 'family', 'technology'];
 
-function Source({ source }) {
-    const { t, has, date, locale } = useT();
-    const [open, close] = locale === 'fr' ? ['« ', ' »'] : ['“', '”'];
+/**
+ * A `quote` field is the contributor's account of the page: only the runs
+ * inside « » are the source's own words (CONTRIBUTING, 300 characters each).
+ * So the account is plain text and only those runs are set as quotation -
+ * wrapping the whole field in quotation marks would present our prose as the
+ * maker's, the very line the licence (facts vs quotations) draws.
+ */
+export function Quote({ text }) {
+    const parts = text.split(/(«[^«»]*»)/g).filter((part) => part !== '');
+    return (
+        <p className="mt-2 break-words border-l-2 border-ink-600 pl-3 text-sm leading-relaxed text-ink-300">
+            {parts.map((part, i) =>
+                part.startsWith('«') ? (
+                    <q key={i} className="italic text-ink-100 before:content-none after:content-none">
+                        {part}
+                    </q>
+                ) : (
+                    <span key={i}>{part}</span>
+                ),
+            )}
+        </p>
+    );
+}
+
+function Source({ source, compact = false, proofNumber = null }) {
+    const { t, has, date } = useT();
     const type = source.type ? (has(`sheet.source_types.${source.type}`) ? t(`sheet.source_types.${source.type}`) : source.type) : t('sheet.source');
     return (
         <div className="text-sm">
@@ -32,16 +55,19 @@ function Source({ source }) {
                     {t('sheet.range_warning')}
                 </p>
             )}
-            {source.quote && (
-                <blockquote className="mt-2 break-words border-l-2 border-accent-400/60 pl-3 text-sm italic leading-relaxed text-ink-300">{open}
-                    {source.quote}
-                    {close}</blockquote>
+            {compact && proofNumber !== null ? (
+                // Already shown in full under « Les preuves »: a link, not a second copy.
+                <a className="mt-1 inline-block text-xs text-accent-300 underline decoration-accent-400/40" href={`#preuve-${proofNumber}`}>
+                    {t('sheet.see_proof', { n: proofNumber })}
+                </a>
+            ) : (
+                source.quote && <Quote text={source.quote} />
             )}
         </div>
     );
 }
 
-function Contested({ row, familyNames }) {
+function Contested({ row, familyNames, proofOf }) {
     const { t } = useT();
     return (
         <div>
@@ -58,7 +84,7 @@ function Contested({ row, familyNames }) {
                             {c.claims > 1 && <span className="text-xs text-ink-400">{t('common.claims_n', { n: c.claims })}</span>}
                         </div>
                         <div className="mt-2">
-                            <Source source={c.source} />
+                            <Source source={c.source} compact proofNumber={proofOf(c.claim)} />
                         </div>
                     </li>
                 ))}
@@ -77,6 +103,8 @@ export default function Show({ sheet, family_names: familyNames, completeness })
         (f) => rows[f] && (rows[f].contested || (rows[f].value !== null && !(typeof rows[f].value === 'string' && rows[f].value.length > 40))),
     );
     const contributeHref = app.contribute_url ?? '/contribute';
+    const proofNumbers = Object.fromEntries(proofs.filter((p) => p.claim).map((p) => [p.claim, p.number]));
+    const proofOf = (claim) => (claim && proofNumbers[claim] !== undefined ? proofNumbers[claim] : null);
 
     const nextLevel =
         completeness &&
@@ -226,7 +254,7 @@ export default function Show({ sheet, family_names: familyNames, completeness })
                                 <FieldName code={row.field} />
                             </dt>
                             <dd className="col-span-2 row-start-2 min-w-0 text-ink-200 sm:col-span-1 sm:row-start-auto sm:px-3">
-                                {row.contested ? <Contested row={row} familyNames={familyNames} /> : <Value field={row.field} value={row.value} familyNames={familyNames} />}
+                                {row.contested ? <Contested row={row} familyNames={familyNames} proofOf={proofOf} /> : <Value field={row.field} value={row.value} familyNames={familyNames} />}
                             </dd>
                             <dd className="col-start-2 row-start-1 whitespace-nowrap text-right sm:col-start-auto sm:row-start-auto">
                                 {row.proof ? (
