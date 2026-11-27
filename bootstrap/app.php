@@ -21,8 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Public, read-only site: no session, no cookie, nothing to protect
-        // with CSRF. Responses stay cacheable by any shared cache. The OAuth
-        // contribution flow (later) will get its own middleware group.
+        // with CSRF. Responses stay cacheable by any shared cache. The
+        // contribution routes have their own group below.
         $middleware->web(remove: [
             EncryptCookies::class,
             AddQueuedCookiesToResponse::class,
@@ -32,6 +32,16 @@ return Application::configure(basePath: dirname(__DIR__))
         ], append: [
             SetLocale::class,
             HandleInertiaRequests::class,
+        ]);
+        // The contribution routes, and only they, get a session, cookies and
+        // CSRF: a sign-in and a form need them, and keeping them off the
+        // reading pages keeps those cacheable by any shared cache.
+        $middleware->group('contribution', [
+            EncryptCookies::class,
+            AddQueuedCookiesToResponse::class,
+            StartSession::class,
+            ShareErrorsFromSession::class,
+            ValidateCsrfToken::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
